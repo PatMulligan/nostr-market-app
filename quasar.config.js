@@ -9,7 +9,6 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
 const { configure } = require("quasar/wrappers");
-const { config } = require('dotenv');
 
 module.exports = configure(function (/* ctx */) {
   return {
@@ -49,6 +48,12 @@ module.exports = configure(function (/* ctx */) {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#build
     build: {
+      env: {
+        DEFAULT_NADDR: process.env.DEFAULT_NADDR,
+        NADDR_PUBKEY: process.env.NADDR_PUBKEY,
+        DEFAULT_BANNER: process.env.DEFAULT_BANNER,
+        DEFAULT_LOGO: process.env.DEFAULT_LOGO,
+      },
       target: {
         browser: ["es2019", "edge88", "firefox78", "chrome87", "safari13.1"],
         node: "node16",
