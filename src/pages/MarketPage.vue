@@ -716,10 +716,10 @@ export default defineComponent({
         opts: null,
       },
 
-      defaultBanner: this.$q.config.staticPath + `images/${process.env.VUE_APP_DEFAULT_BANNER}`,
-      defaultLogo: this.$q.config.staticPath + `images/${process.env.VUE_APP_DEFAULT_LOGO}`,
+      defaultBanner: this.$q.config.staticPath + `images/${process.env.DEFAULT_BANNER}`,
+      defaultLogo: this.$q.config.staticPath + `images/${process.env.DEFAULT_LOGO}`,
       defaultMarketNaddr:
-        process.env.VUE_APP_DEFAULT_NADDR,
+        process.env.DEFAULT_NADDR,
       readNotes: {
         merchants: false,
         marketUi: false,
@@ -956,7 +956,7 @@ export default defineComponent({
     this._startRelaysHealtCheck();
   },
   mounted() {
-    if (!this.markets.some(obj => obj.pubkey === process.env.VUE_APP_NADDR_PUBKEY)) {
+    if (!this.markets.some(obj => obj.pubkey === process.env.NADDR_PUBKEY)) {
       this.addMarket(this.defaultMarketNaddr)
     }
   },
