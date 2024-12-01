@@ -9,6 +9,7 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
 const { configure } = require("quasar/wrappers");
+const { config } = require('dotenv');
 
 module.exports = configure(function (/* ctx */) {
   return {
