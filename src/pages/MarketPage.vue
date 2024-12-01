@@ -716,10 +716,10 @@ export default defineComponent({
         opts: null,
       },
 
-      defaultBanner: this.$q.config.staticPath + "images/nostr-cover.png",
-      defaultLogo: this.$q.config.staticPath + "images/nostr-avatar.png",
+      defaultBanner: this.$q.config.staticPath + `images/${process.env.VUE_APP_DEFAULT_BANNER}`,
+      defaultLogo: this.$q.config.staticPath + `images/${process.env.VUE_APP_DEFAULT_LOGO}`,
       defaultMarketNaddr:
-        "naddr1qqjr2e34v3jrzd3e95ensdfn956rywps94snwcmr95crvepexc6kxcfcxqmnvqg5waehxw309aex2mrp0yhxgctdw4eju6t0qyv8wumn8ghj7un9d3shjtnndehhyapwwdhkx6tpdsq36amnwvaz7tmwdaehgu3dwp6kytnhv4kxcmmjv3jhytnwv46qzxthwden5te0dehhxarj9eax2cn9v3jk2tnrd3hh2eqprfmhxue69uhhyetvv9ujummjv9hxwetsd9kxctnyv4mqzrthwden5te0dehhxtnvdakqz9rhwden5te0wfjkccte9ehx7um5wghxyecpzpmhxue69uhkummnw3ezuamfdejsz9thwden5te0v4jx2m3wdehhxarj9ekxzmnyqgstle9w09rt8y7xdlqs33v23vqvdtqx6j6j2wa4984g9n77tppx2tqrqsqqqa2ruusd5z",
+        process.env.VUE_APP_DEFAULT_NADDR,
       readNotes: {
         merchants: false,
         marketUi: false,
@@ -954,6 +954,11 @@ export default defineComponent({
     this._loadRelaysData();
 
     this._startRelaysHealtCheck();
+  },
+  mounted() {
+    if (!this.markets.some(obj => obj.pubkey === process.env.VUE_APP_NADDR_PUBKEY)) {
+      this.addMarket(this.defaultMarketNaddr)
+    }
   },
   methods: {
     async _handleQueryParams(params) {
@@ -1468,6 +1473,10 @@ export default defineComponent({
 
         if (isJson(event.content)) {
           market.opts = JSON.parse(event.content);
+          if (naddr == this.defaultMarketNaddr) {
+              this.config = { ...this.config, opts: market.opts };
+              this._applyUiConfigs(market?.opts);
+          } else {
           this.$q
             .dialog(
               confirm(
@@ -1478,6 +1487,7 @@ export default defineComponent({
               this.config = { ...this.config, opts: market.opts };
               this._applyUiConfigs(market?.opts);
             });
+          }
         }
 
         this.markets = this.markets.filter(
@@ -1968,7 +1978,7 @@ export default defineComponent({
       const uiConfig = this.$q.localStorage.getItem(
         "nostrmarket.marketplaceConfig"
       ) || {
-        ui: { darkMode: false },
+        ui: { darkMode: true },
       };
 
       const sort = this.$q.localStorage.getItem("nostrmarket.sort") || {};
