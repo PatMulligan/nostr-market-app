@@ -723,10 +723,10 @@ export default defineComponent({
         ? this.$q.config.staticPath + process.env.DEFAULT_LOGO
         : "images/aio.png",
       defaultMarketNaddr: process.env.DEFAULT_NADDR
-        ? this.$q.config.staticath + process.env.DEFAULT_NADDR
+        ? this.$q.config.staticPath + process.env.DEFAULT_NADDR
         : "naddr1qqjrzerxxu6xxdm994nxyc3s956xzdpc95ukyv3n94nxydrzvgunjcn9x56rwqg5waehxw309aex2mrp0yhxgctdw4eju6t0qyv8wumn8ghj7un9d3shjtnndehhyapwwdhkx6tpdsq36amnwvaz7tmwdaehgu3dwp6kytnhv4kxcmmjv3jhytnwv46qzxthwden5te0dehhxarj9eax2cn9v3jk2tnrd3hh2eqpramhxue69uhkummnw3ezuampd3kx2ar0veekzar0wd5xjtnrdaksygqf23tmn9g9w3dvmjmzxtsgl0gm266lk8un0qznrt3qtex5aqwq5ypsgqqqw4pst92fyu",
       defaultNaddrPubkey: process.env.NADDR_PUBKEY
-        ? this.$q.config.staticath + process.env.NADDR_PUBKEY
+        ? this.$q.config.staticPath + process.env.NADDR_PUBKEY
         : "095457b99505745acdcb6232e08fbd1b56b5fb1f93780531ae205e4d4e81c0a1",
       readNotes: {
         merchants: false,
