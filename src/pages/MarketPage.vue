@@ -1480,9 +1480,9 @@ export default defineComponent({
 
         if (!event) return;
 
-      if (isJson(event.content)) {
-          market.opts = JSON.parse(event.content);
-        }
+        if (isJson(event.content)) {
+            market.opts = JSON.parse(event.content);
+          }
 
         if (askUi) {
             this.$q
