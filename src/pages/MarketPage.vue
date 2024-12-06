@@ -1481,8 +1481,8 @@ export default defineComponent({
         if (!event) return;
 
         if (isJson(event.content)) {
-            market.opts = JSON.parse(event.content);
-          }
+          market.opts = JSON.parse(event.content);
+        }
 
         if (askUi) {
             this.$q
@@ -1496,13 +1496,13 @@ export default defineComponent({
                 this._applyUiConfigs(market?.opts);
               });
         } else if (!askUi && admin) {
+          console.log("meow")
           console.log(admin)
           if (isJson(event.content)) {
             market.opts = JSON.parse(event.content);
             this.config = { ...this.config, opts: market.opts };
             this._applyUiConfigs(market?.opts);
           }
-        }
         }
 
         this.markets = this.markets.filter(
