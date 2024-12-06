@@ -716,8 +716,8 @@ export default defineComponent({
         opts: null,
       },
 
-      defaultBanner: process.env.DEFAULT_LOGO
-        ? this.$q.config.staticPath + process.env.DEFAULT_LOGO
+      defaultBanner: process.env.DEFAULT_BANNER
+        ? this.$q.config.staticPath + process.env.DEFAULT_BANNER
         : "images/atitlanio.png",
       defaultLogo: process.env.DEFAULT_LOGO
         ? this.$q.config.staticPath + process.env.DEFAULT_LOGO
