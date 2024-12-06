@@ -716,10 +716,10 @@ export default defineComponent({
         opts: null,
       },
 
-      defaultBanner: this.$q.config.staticPath + `images/${process.env.DEFAULT_BANNER}`,
-      defaultLogo: this.$q.config.staticPath + `images/${process.env.DEFAULT_LOGO}`,
-      defaultMarketNaddr:
-        process.env.DEFAULT_NADDR,
+      defaultBanner: this.$q.config.staticPath + `${process.env.DEFAULT_BANNER || "https://market.atitlan.io/images/atitlanio.png"}`,
+      defaultLogo: this.$q.config.staticPath + `${process.env.DEFAULT_LOGO || "https://market.atitlan.io/images/aio.png"}`,
+      defaultMarketNaddr: process.env.DEFAULT_NADDR || "naddr1qqjrjepnxy6rje3h95unydnp956xyde495ukgcfe94jkgwpsv5urvwtrv3nryqgkwaehxw309ahx7um5wghxzarfw3kxzm3wd9hsz9nhwden5te0wfjkccte9eshg6t5d3skutnfdupzqz2527ue2pt5ttxukc3juz8m6x6kkha3lymcq5c6ugz7f48grs9pqvzqqqr4gv8y86h5",
+      defaultMarketPubkey: process.env.NADDR_PUBKEY || "095457b99505745acdcb6232e08fbd1b56b5fb1f93780531ae205e4d4e81c0a1",
       readNotes: {
         merchants: false,
         marketUi: false,
@@ -955,10 +955,15 @@ export default defineComponent({
 
     this._startRelaysHealtCheck();
   },
-  mounted() {
-    if (!this.markets.some(obj => obj.pubkey === process.env.NADDR_PUBKEY)) {
+  async mounted() {
+    if (!this.markets.some(obj => obj.pubkey === this.defaultMarketPubkey )) {
+      console.log("meow",this.defaultMarketNaddr)
+      console.log(this.defaultMarketPubkey)
       this.addMarket(this.defaultMarketNaddr)
     }
+    const result = this.markets.find(market => market.pubkey === this.defaultMarketPubkey)
+    console.log(result)
+    console.log(this.markets)
   },
   methods: {
     async _handleQueryParams(params) {
