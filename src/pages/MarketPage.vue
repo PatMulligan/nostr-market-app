@@ -1461,14 +1461,6 @@ export default defineComponent({
     async addMarket(naddr) {
       if (!naddr) return;
 
-      const existingMarket =
-        this.markets.find((m) => m.d === d && m.pubkey === pubkey) || {};
-
-      if (existingMarket) {
-        this.updateMarket(existingMarket);
-        return;
-      }
-
       try {
         this.setActivePage("loading");
         const { type, data } = NostrTools.nip19.decode(naddr);
