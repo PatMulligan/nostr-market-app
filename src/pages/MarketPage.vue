@@ -1180,7 +1180,7 @@ export default defineComponent({
       const authors = relayData.merchants;
       const filters = [
         {
-          kinds: [30017, 30018],
+          kinds: [30017, 30018, 30019],
           authors,
           since: relayData.lastEventAt + 1,
         },
