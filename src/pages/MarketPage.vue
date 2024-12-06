@@ -959,11 +959,14 @@ export default defineComponent({
     if (!this.markets.some(obj => obj.pubkey === this.defaultMarketPubkey )) {
       console.log("meow",this.defaultMarketNaddr)
       console.log(this.defaultMarketPubkey)
-      this.addMarket(this.defaultMarketNaddr)
+      await this.addMarket(this.defaultMarketNaddr)
     }
-    const result = this.markets.find(market => market.pubkey === this.defaultMarketPubkey)
-    console.log(result)
-    console.log(this.markets)
+
+    for ( let i in this.markets) {
+      this.updateMarket(this.markets[i])
+    }
+
+
   },
   methods: {
     async _handleQueryParams(params) {
