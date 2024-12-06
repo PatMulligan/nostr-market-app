@@ -716,10 +716,16 @@ export default defineComponent({
         opts: null,
       },
 
-      defaultBanner: this.$q.config.staticPath + `${process.env.DEFAULT_BANNER || "https://market.atitlan.io/images/atitlanio.png"}`,
-      defaultLogo: this.$q.config.staticPath + `${process.env.DEFAULT_LOGO || "https://market.atitlan.io/images/aio.png"}`,
-      defaultMarketNaddr: process.env.DEFAULT_NADDR || "naddr1qqjrjepnxy6rje3h95unydnp956xyde495ukgcfe94jkgwpsv5urvwtrv3nryqgkwaehxw309ahx7um5wghxzarfw3kxzm3wd9hsz9nhwden5te0wfjkccte9eshg6t5d3skutnfdupzqz2527ue2pt5ttxukc3juz8m6x6kkha3lymcq5c6ugz7f48grs9pqvzqqqr4gv8y86h5",
-      defaultMarketPubkey: process.env.NADDR_PUBKEY || "095457b99505745acdcb6232e08fbd1b56b5fb1f93780531ae205e4d4e81c0a1",
+      defaultBanner: this.$q.config.staticPath + process.env.DEFAULT_BANNER || "images/atitlanio.png",
+      defaultLogo: process.env.DEFAULT_LOGO
+        ? this.$q.config.staticPath + process.env.DEFAULT_LOGO
+        : "images/aio.png",
+      defaultMarketNaddr: process.env.DEFAULT_NADDR
+        ? this.$q.config.staticath + process.env.DEFAULT_NADDR
+        : "naddr1qqjrzerxxu6xxdm994nxyc3s956xzdpc95ukyv3n94nxydrzvgunjcn9x56rwqg5waehxw309aex2mrp0yhxgctdw4eju6t0qyv8wumn8ghj7un9d3shjtnndehhyapwwdhkx6tpdsq36amnwvaz7tmwdaehgu3dwp6kytnhv4kxcmmjv3jhytnwv46qzxthwden5te0dehhxarj9eax2cn9v3jk2tnrd3hh2eqpramhxue69uhkummnw3ezuampd3kx2ar0veekzar0wd5xjtnrdaksygqf23tmn9g9w3dvmjmzxtsgl0gm266lk8un0qznrt3qtex5aqwq5ypsgqqqw4pst92fyu",
+      defaultNaddrPubkey: process.env.NADDR_PUBKEY
+        ? this.$q.config.staticath + process.env.NADDR_PUBKEY
+        : "095457b99505745acdcb6232e08fbd1b56b5fb1f93780531ae205e4d4e81c0a1",
       readNotes: {
         merchants: false,
         marketUi: false,
@@ -956,17 +962,14 @@ export default defineComponent({
     this._startRelaysHealtCheck();
   },
   async mounted() {
-    if (!this.markets.some(obj => obj.pubkey === this.defaultMarketPubkey )) {
-      console.log("meow",this.defaultMarketNaddr)
-      console.log(this.defaultMarketPubkey)
-      await this.addMarket(this.defaultMarketNaddr)
+
+
+    console.log(this.defaultMarketNaddr)
+    if (!this.markets.some(obj => obj[this.defaultMarketNaddr] === this.defaultMarketNaddr)) {
+      this.addMarket(this.defaultMarketNaddr)
     }
 
-    for ( let i in this.markets) {
-      this.updateMarket(this.markets[i])
-    }
-
-
+    this.markets.forEach(market => this.updateMarket(market));
   },
   methods: {
     async _handleQueryParams(params) {
@@ -1479,11 +1482,11 @@ export default defineComponent({
 
         if (!event) return;
 
-        if (isJson(event.content)) {
+      if (isJson(event.content)) {
           market.opts = JSON.parse(event.content);
-          if (naddr == this.defaultMarketNaddr) {
-              this.config = { ...this.config, opts: market.opts };
-              this._applyUiConfigs(market?.opts);
+          if (market.pubkey === this.defaultNaddrPubkey){
+                  this.config = { ...this.config, opts: market.opts };
+                  this._applyUiConfigs(market?.opts);
           } else {
           this.$q
             .dialog(
@@ -1495,7 +1498,7 @@ export default defineComponent({
               this.config = { ...this.config, opts: market.opts };
               this._applyUiConfigs(market?.opts);
             });
-          }
+        }
         }
 
         this.markets = this.markets.filter(
@@ -1986,7 +1989,7 @@ export default defineComponent({
       const uiConfig = this.$q.localStorage.getItem(
         "nostrmarket.marketplaceConfig"
       ) || {
-        ui: { darkMode: true },
+        ui: { darkMode: false },
       };
 
       const sort = this.$q.localStorage.getItem("nostrmarket.sort") || {};
