@@ -716,7 +716,9 @@ export default defineComponent({
         opts: null,
       },
 
-      defaultBanner: this.$q.config.staticPath + process.env.DEFAULT_BANNER || "images/atitlanio.png",
+      defaultBanner: process.env.DEFAULT_LOGO
+        ? this.$q.config.staticPath + process.env.DEFAULT_LOGO
+        : "images/atitlanio.png",
       defaultLogo: process.env.DEFAULT_LOGO
         ? this.$q.config.staticPath + process.env.DEFAULT_LOGO
         : "images/aio.png",
@@ -962,8 +964,6 @@ export default defineComponent({
     this._startRelaysHealtCheck();
   },
   async mounted() {
-
-
     console.log(this.defaultMarketNaddr)
     if (!this.markets.some(obj => obj[this.defaultMarketNaddr] === this.defaultMarketNaddr)) {
       this.addMarket(this.defaultMarketNaddr)
