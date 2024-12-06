@@ -442,7 +442,7 @@
                 <li>
                   <span class="text-h6">
                     <q-btn
-                      @click="addMarket(defaultMarketNaddr)"
+                      @click="addUpdateMarket(defaultMarketNaddr)"
                       size="xl"
                       flat
                       color="secondary"
@@ -763,7 +763,7 @@ export default defineComponent({
             .dialog(confirm("Do you want to import this market profile?"))
             .onOk(async () => {
               this.searchText = "";
-              await this.addMarket(n);
+              await this.addUpdateMarket(n);
             });
         } catch {}
       }
@@ -947,7 +947,9 @@ export default defineComponent({
 
     const params = new URLSearchParams(window.location.search);
 
-    await this.addMarket(params.get("naddr"));
+    this.pool = new NostrTools.SimplePool();
+    this.markets.forEach(market => this.addUpdateMarket(market.naddr));
+    await this.addUpdateMarket(params.get("naddr"));
     await this._handleQueryParams(params);
 
     this.isLoading = false;
@@ -1441,7 +1443,7 @@ export default defineComponent({
         this.setActivePage("market-config");
       }
     },
-    async addMarket(naddr) {
+    async addUpdateMarket(naddr) {
       if (!naddr) return;
 
       try {
@@ -1451,13 +1453,13 @@ export default defineComponent({
 
         const market = {
           d: data.identifier,
+          naddr: naddr,
           pubkey: data.pubkey,
           relays: data.relays,
           selected: true,
         };
 
-        const pool = new NostrTools.SimplePool();
-        const event = await pool.get(market.relays, {
+        const event = await this.pool.get(market.relays, {
           kinds: [30019],
           limit: 1,
           authors: [market.pubkey],
