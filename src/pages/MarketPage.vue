@@ -953,6 +953,7 @@ export default defineComponent({
 
     this._restoreFromStorage();
 
+    this.pool = new NostrTools.SimplePool();
     const params = new URLSearchParams(window.location.search);
 
     await this.addMarket(params.get("naddr"));
@@ -1460,6 +1461,14 @@ export default defineComponent({
     async addMarket(naddr) {
       if (!naddr) return;
 
+      const existingMarket =
+        this.markets.find((m) => m.d === d && m.pubkey === pubkey) || {};
+
+      if (existingMarket) {
+        this.updateMarket(existingMarket);
+        return;
+      }
+
       try {
         this.setActivePage("loading");
         const { type, data } = NostrTools.nip19.decode(naddr);
@@ -1472,8 +1481,7 @@ export default defineComponent({
           selected: true,
         };
 
-        const pool = new NostrTools.SimplePool();
-        const event = await pool.get(market.relays, {
+        const event = await this.pool.get(market.relays, {
           kinds: [30019],
           limit: 1,
           authors: [market.pubkey],
