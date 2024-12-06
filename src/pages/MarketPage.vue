@@ -956,6 +956,12 @@ export default defineComponent({
     const params = new URLSearchParams(window.location.search);
 
     this.pool = new NostrTools.SimplePool();
+    this.markets.forEach(market => this.addUpdateMarket(market.naddr));
+
+    if (!this.markets.some(obj => obj[this.defaultMarketNaddr] === this.defaultMarketNaddr)) {
+      this.addUpdateMarket(this.defaultMarketNaddr)
+    }
+
     await this.addUpdateMarket(params.get("naddr"));
     await this._handleQueryParams(params);
 
@@ -963,17 +969,6 @@ export default defineComponent({
     this._loadRelaysData();
 
     this._startRelaysHealtCheck();
-  },
-  async mounted() {
-    if (!this.markets.some(obj => obj[this.defaultMarketNaddr] === this.defaultMarketNaddr)) {
-      this.addUpdateMarket(this.defaultMarketNaddr)
-    }
-    // TODO: get this working
-    // problem is that the markets do not store their naddr
-    // in that case you'd have to get the naddr, but how...
-    // do you
-    console.log(this.markets)
-    this.markets.forEach(market => this.addUpdateMarket(market.naddr));
   },
   methods: {
     async _handleQueryParams(params) {
