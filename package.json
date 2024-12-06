@@ -2,7 +2,7 @@
   "name": "nostr-market-app",
   "version": "0.0.1",
   "description": "A Nostr marketplace",
-  "productName": "Nostr Market App",
+  "productName": "AtitlanIO Market App",
   "author": "Vlad Stan <stan.v.vlad@gmail.com>",
   "private": true,
   "scripts": {
