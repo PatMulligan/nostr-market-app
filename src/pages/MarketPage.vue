@@ -948,8 +948,12 @@ export default defineComponent({
     const params = new URLSearchParams(window.location.search);
 
     this.pool = new NostrTools.SimplePool();
-    this.markets.forEach(market => this.addUpdateMarket(market.naddr));
+    this.markets.forEach(market => this.addUpdateMarket(market.naddr, false));
     await this.addUpdateMarket(params.get("naddr"));
+
+    // NOTE: automatically add the default market
+    await this.addUpdateMarket(this.defaultMarketNaddr, false, true);
+
     await this._handleQueryParams(params);
 
     this.isLoading = false;
@@ -1443,7 +1447,7 @@ export default defineComponent({
         this.setActivePage("market-config");
       }
     },
-    async addUpdateMarket(naddr) {
+    async addUpdateMarket(naddr, askUi = true, admin=false) {
       if (!naddr) return;
 
       try {
@@ -1470,16 +1474,27 @@ export default defineComponent({
 
         if (isJson(event.content)) {
           market.opts = JSON.parse(event.content);
-          this.$q
-            .dialog(
-              confirm(
-                `Do you want to use the look and feel of the '${market.opts.name}' market?`
+        }
+
+        if (askUi) {
+            this.$q
+              .dialog(
+                confirm(
+                  `Do you want to use the look and feel of the '${market.opts.name}' market?`
+                )
               )
-            )
-            .onOk(async () => {
-              this.config = { ...this.config, opts: market.opts };
-              this._applyUiConfigs(market?.opts);
-            });
+              .onOk(async () => {
+                this.config = { ...this.config, opts: market.opts };
+                this._applyUiConfigs(market?.opts);
+              });
+        } else if (!askUi && admin) {
+          console.log("meow")
+          console.log(admin)
+          if (isJson(event.content)) {
+            market.opts = JSON.parse(event.content);
+            this.config = { ...this.config, opts: market.opts };
+            this._applyUiConfigs(market?.opts);
+          }
         }
 
         this.markets = this.markets.filter(
