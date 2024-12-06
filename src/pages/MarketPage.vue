@@ -442,7 +442,7 @@
                 <li>
                   <span class="text-h6">
                     <q-btn
-                      @click="addMarket(defaultMarketNaddr)"
+                      @click="addUpdateMarket(defaultMarketNaddr)"
                       size="xl"
                       flat
                       color="secondary"
@@ -724,7 +724,7 @@ export default defineComponent({
         : "images/aio.png",
       defaultMarketNaddr: process.env.DEFAULT_NADDR
         ? this.$q.config.staticPath + process.env.DEFAULT_NADDR
-        : "naddr1qqjrzerxxu6xxdm994nxyc3s956xzdpc95ukyv3n94nxydrzvgunjcn9x56rwqg5waehxw309aex2mrp0yhxgctdw4eju6t0qyv8wumn8ghj7un9d3shjtnndehhyapwwdhkx6tpdsq36amnwvaz7tmwdaehgu3dwp6kytnhv4kxcmmjv3jhytnwv46qzxthwden5te0dehhxarj9eax2cn9v3jk2tnrd3hh2eqpramhxue69uhkummnw3ezuampd3kx2ar0veekzar0wd5xjtnrdaksygqf23tmn9g9w3dvmjmzxtsgl0gm266lk8un0qznrt3qtex5aqwq5ypsgqqqw4pst92fyu",
+        : "naddr1qqjrzerxxu6xxdm994nxyc3s956xzdpc95ukyv3n94nxydrzvgunjcn9x56rwqgkwaehxw309ahx7um5wghxzarfw3kxzm3wd9hsz9nhwden5te0wfjkccte9eshg6t5d3skutnfdupzqz2527ue2pt5ttxukc3juz8m6x6kkha3lymcq5c6ugz7f48grs9pqvzqqqr4gvz5v3j7",
       defaultNaddrPubkey: process.env.NADDR_PUBKEY
         ? this.$q.config.staticPath + process.env.NADDR_PUBKEY
         : "095457b99505745acdcb6232e08fbd1b56b5fb1f93780531ae205e4d4e81c0a1",
@@ -771,7 +771,7 @@ export default defineComponent({
             .dialog(confirm("Do you want to import this market profile?"))
             .onOk(async () => {
               this.searchText = "";
-              await this.addMarket(n);
+              await this.addUpdateMarket(n);
             });
         } catch {}
       }
@@ -953,10 +953,10 @@ export default defineComponent({
 
     this._restoreFromStorage();
 
-    this.pool = new NostrTools.SimplePool();
     const params = new URLSearchParams(window.location.search);
 
-    await this.addMarket(params.get("naddr"));
+    this.pool = new NostrTools.SimplePool();
+    await this.addUpdateMarket(params.get("naddr"));
     await this._handleQueryParams(params);
 
     this.isLoading = false;
@@ -965,12 +965,15 @@ export default defineComponent({
     this._startRelaysHealtCheck();
   },
   async mounted() {
-    console.log(this.defaultMarketNaddr)
     if (!this.markets.some(obj => obj[this.defaultMarketNaddr] === this.defaultMarketNaddr)) {
-      this.addMarket(this.defaultMarketNaddr)
+      this.addUpdateMarket(this.defaultMarketNaddr)
     }
-
-    this.markets.forEach(market => this.updateMarket(market));
+    // TODO: get this working
+    // problem is that the markets do not store their naddr
+    // in that case you'd have to get the naddr, but how...
+    // do you
+    console.log(this.markets)
+    this.markets.forEach(market => this.addUpdateMarket(market.naddr));
   },
   methods: {
     async _handleQueryParams(params) {
@@ -1197,7 +1200,7 @@ export default defineComponent({
       const authors = relayData.merchants;
       const filters = [
         {
-          kinds: [30017, 30018],
+          kinds: [30017, 30018, 30019],
           authors,
           since: relayData.lastEventAt + 1,
         },
@@ -1458,7 +1461,7 @@ export default defineComponent({
         this.setActivePage("market-config");
       }
     },
-    async addMarket(naddr) {
+    async addUpdateMarket(naddr) {
       if (!naddr) return;
 
       try {
@@ -1468,6 +1471,7 @@ export default defineComponent({
 
         const market = {
           d: data.identifier,
+          naddr: naddr,
           pubkey: data.pubkey,
           relays: data.relays,
           selected: true,
@@ -1484,6 +1488,10 @@ export default defineComponent({
 
       if (isJson(event.content)) {
           market.opts = JSON.parse(event.content);
+          // const updatedMarkets = this.markets.map(storedMarket => (storedMarket.id === market.id ? market : storedMarket));
+          // console.log(updatedMarkets)
+          // this.markets = updatedMarkets
+          // console.log(this.markets)
           if (market.pubkey === this.defaultNaddrPubkey){
                   this.config = { ...this.config, opts: market.opts };
                   this._applyUiConfigs(market?.opts);
@@ -1504,8 +1512,11 @@ export default defineComponent({
         this.markets = this.markets.filter(
           (m) => m.d !== market.d || m.pubkey !== market.pubkey
         );
+        console.log("************here***************")
+        console.log(this.markets)
         this.markets.unshift(market);
         this.$q.localStorage.set("nostrmarket.markets", this.markets);
+        console.log(this.markets)
 
         for (const relayUrl of market.relays) {
           await this._handleNewRelay(relayUrl, market);
@@ -1516,6 +1527,7 @@ export default defineComponent({
         this.setActivePage("market");
       }
     },
+
     updateMarket(market) {
       try {
         this.isLoading = true;
@@ -1524,6 +1536,16 @@ export default defineComponent({
 
         const existingMarket =
           this.markets.find((m) => m.d === d && m.pubkey === pubkey) || {};
+
+        const event = this.pool.get(existingMarket.relays, {
+          kinds: [30019],
+          limit: 1,
+          authors: [existingMarket.pubkey],
+          "#d": [existingMarket.d],
+        });
+
+        // BUG: something about this isn't working
+        // why can't we just run addUpdateMarket() ?
 
         const newMerchants = market.opts?.merchants.filter(
           (m) => !existingMarket.opts?.merchants.includes(m)
@@ -1664,7 +1686,7 @@ export default defineComponent({
         if (relayData.merchants.includes(merchantPubkey)) return;
 
         const events = await relayData.relay.list([
-          { kinds: [30017, 30018], authors: [merchantPubkey] },
+          { kinds: [30017, 30018, 30019], authors: [merchantPubkey] },
         ]);
         await this._processEvents(events, relayData);
 
