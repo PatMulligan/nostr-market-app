@@ -955,6 +955,9 @@ export default defineComponent({
 
     this._startRelaysHealtCheck();
   },
+  async mounted() {
+    this.markets.forEach(market => this.updateMarket(market));
+  },
   methods: {
     async _handleQueryParams(params) {
       const merchantPubkey = params.get("merchant");
