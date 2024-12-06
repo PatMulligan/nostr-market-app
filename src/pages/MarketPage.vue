@@ -956,13 +956,12 @@ export default defineComponent({
     const params = new URLSearchParams(window.location.search);
 
     this.pool = new NostrTools.SimplePool();
-    this.markets.forEach(market => this.addUpdateMarket(market.naddr));
-
-    if (!this.markets.some(obj => obj[this.defaultMarketNaddr] === this.defaultMarketNaddr)) {
-      this.addUpdateMarket(this.defaultMarketNaddr)
-    }
-
+    this.markets.forEach(market => this.addUpdateMarket(market.naddr, false));
     await this.addUpdateMarket(params.get("naddr"));
+
+    // NOTE: automatically add the default market
+    await this.addUpdateMarket(this.defaultMarketNaddr, false, true);
+
     await this._handleQueryParams(params);
 
     this.isLoading = false;
@@ -1456,7 +1455,7 @@ export default defineComponent({
         this.setActivePage("market-config");
       }
     },
-    async addUpdateMarket(naddr) {
+    async addUpdateMarket(naddr, askUi = true, admin=false) {
       if (!naddr) return;
 
       try {
@@ -1483,31 +1482,32 @@ export default defineComponent({
 
       if (isJson(event.content)) {
           market.opts = JSON.parse(event.content);
-          // const updatedMarkets = this.markets.map(storedMarket => (storedMarket.id === market.id ? market : storedMarket));
-          // console.log(updatedMarkets)
-          // this.markets = updatedMarkets
-          // console.log(this.markets)
-          if (market.pubkey === this.defaultNaddrPubkey){
-                  this.config = { ...this.config, opts: market.opts };
-                  this._applyUiConfigs(market?.opts);
-          } else {
-          this.$q
-            .dialog(
-              confirm(
-                `Do you want to use the look and feel of the '${market.opts.name}' market?`
+        }
+
+        if (askUi) {
+            this.$q
+              .dialog(
+                confirm(
+                  `Do you want to use the look and feel of the '${market.opts.name}' market?`
+                )
               )
-            )
-            .onOk(async () => {
-              this.config = { ...this.config, opts: market.opts };
-              this._applyUiConfigs(market?.opts);
-            });
+              .onOk(async () => {
+                this.config = { ...this.config, opts: market.opts };
+                this._applyUiConfigs(market?.opts);
+              });
+        } else if (!askUi && admin) {
+          console.log(admin)
+          if (isJson(event.content)) {
+            market.opts = JSON.parse(event.content);
+            this.config = { ...this.config, opts: market.opts };
+            this._applyUiConfigs(market?.opts);
+          }
         }
         }
 
         this.markets = this.markets.filter(
           (m) => m.d !== market.d || m.pubkey !== market.pubkey
         );
-        console.log("************here***************")
         console.log(this.markets)
         this.markets.unshift(market);
         this.$q.localStorage.set("nostrmarket.markets", this.markets);
