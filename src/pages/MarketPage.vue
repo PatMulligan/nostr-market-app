@@ -620,6 +620,7 @@ import VueQrcode from "@chenfengyuan/vue-qrcode";
 import { useCopyText } from 'src/composables/useCopyText';
 import { useShoppingCart } from 'src/composables/useShoppingCart';
 import { useOrders } from 'src/composables/useOrders';
+import { useRelays } from 'src/composables/useRelays';
 
 import MarketConfig from "components/MarketConfig.vue";
 import UserConfig from "components/UserConfig.vue";
@@ -639,6 +640,7 @@ export default defineComponent({
     return {
       orderActions: useOrders(),
       cartActions: useShoppingCart(),
+      relayActions: useRelays(),
       account: null,
       accountMetadata: null,
       accountDialog: {
@@ -1231,14 +1233,8 @@ export default defineComponent({
       );
     },
 
-    async _publishEventToRelays(event, relayUrls) {
-      let count = 0;
-      for (const relayUrl of relayUrls) {
-        if (await this._publishEventToRelay(event, relayUrl)) {
-          count++;
-        }
-      }
-      return count;
+    async _publishEventToRelays(event, relays) {
+      return await this.relayActions.publishEventToRelays(event, relays);
     },
 
     async _publishEventToRelay(event, relayUrl) {
@@ -1256,13 +1252,9 @@ export default defineComponent({
     },
 
     _findRelaysForMerchant(pubkey) {
-      const relaysForMerchant = this.markets
-        .filter((m) => m.opts.merchants.includes(pubkey))
-        .map((m) => m.relays)
-        .flat();
-
-      return [...new Set(relaysForMerchant)];
+      return this.relayActions.findRelaysForMerchant(pubkey, this.markets);
     },
+
     /////////////////////////////////////////////////////////// PROCESS EVENTS ///////////////////////////////////////////////////////////
 
     _processEvents(events, relayData) {
@@ -1795,51 +1787,36 @@ export default defineComponent({
 
     /////////////////////////////////////////////////////////// ORDERS ///////////////////////////////////////////////////////////
 
-    async placeOrder({ event, order, cartId }) {
-      const result = await this.orderActions.placeOrder(
-        { event, order, cartId },
-        this.account,
-        this.checkoutStall
-      );
+  async placeOrder({ event, order, cartId }) {
+    const result = await this.orderActions.placeOrder(
+      { event, order, cartId },
+      this.account,
+      this.checkoutStall,
+      this.markets
+    );
 
-      if (result.success) {
-        this._persistOrderUpdate(
-          this.checkoutStall.pubkey,
-          result.event.created_at,
-          order
-        );
-        this.removeCart(cartId);
-        this.setActivePage("shopping-cart-list");
-      } else if (result.error === 'no-account') {
-        this.openAccountDialog();
-      }
-    },
-
-    async _sendOrderEvent(event) {
-      const merchantPubkey = event.tags
-        .filter((t) => t[0] === "p")
-        .map((t) => t[1]);
-
-      const merchantRelays = this._findRelaysForMerchant(merchantPubkey[0]);
-      const relayCount = await this._publishEventToRelays(
-        event,
-        merchantRelays
-      );
-      this.$q.notify({
-        type: relayCount ? "positive" : "warning",
-        message: relayCount
-          ? `The order has been placed (${relayCount} relays)!`
-          : "Order could not be placed",
-      });
+    if (result.success) {
+      // Handle QR code dialog
       this.qrCodeDialog = {
         data: {
           payment_request: null,
           message: null,
         },
         dismissMsg: null,
-        show: !!relayCount,
+        show: !!result.relayCount,
       };
-    },
+
+      this._persistOrderUpdate(
+        this.checkoutStall.pubkey,
+        result.event.created_at,
+        order
+      );
+      this.removeCart(cartId);
+      this.setActivePage("shopping-cart-list");
+    } else if (result.error === 'no-account') {
+      this.openAccountDialog();
+    }
+  },
 
     _handlePaymentRequest(json) {
       if (json.id && json.id !== this.activeOrderId) {

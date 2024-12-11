@@ -1,9 +1,11 @@
 import { useQuasar } from 'quasar';
+import { useRelays } from './useRelays';
 
 export function useOrders() {
   const $q = useQuasar();
+  const { findRelaysForMerchant, publishEventToRelays } = useRelays();
 
-  const placeOrder = async ({ event, order, cartId }, account, checkoutStall) => {
+  const placeOrder = async ({ event, order, cartId }, account, checkoutStall, markets) => {
     if (!account?.privkey) {
       return { success: false, error: 'no-account' };
     }
@@ -22,7 +24,7 @@ export function useOrders() {
         .filter((t) => t[0] === "p")
         .map((t) => t[1]);
 
-      const merchantRelays = findRelaysForMerchant(merchantPubkey[0]);
+      const merchantRelays = findRelaysForMerchant(merchantPubkey[0], markets);
       const relayCount = await publishEventToRelays(event, merchantRelays);
 
       $q.notify({
