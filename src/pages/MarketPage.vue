@@ -610,13 +610,14 @@
 
 <script setup>
 import { useQuasar } from "quasar";
+
 window.$q = useQuasar();
 </script>
 
 <script>
 import { defineComponent } from "vue";
 import VueQrcode from "@chenfengyuan/vue-qrcode";
-import { copyToClipboard } from "quasar";
+import { useCopyText } from 'src/composables/useCopyText';
 
 import MarketConfig from "components/MarketConfig.vue";
 import UserConfig from "components/UserConfig.vue";
@@ -632,6 +633,14 @@ import ProductFilter from "components/ProductFilter.vue";
 export default defineComponent({
   name: "MarketPage",
   components: { MarketConfig },
+  setup() {
+    const { copyText, copyUrl } = useCopyText();
+
+    return {
+      copyText,
+      copyUrl
+    };
+  },
   data: function () {
     return {
       account: null,
@@ -2117,18 +2126,6 @@ export default defineComponent({
 
       window.history.pushState({}, "", url);
       // this.activePage = page
-    },
-    copyUrl: function () {
-      this.copyText(window.location);
-    },
-    copyText: function (text) {
-      var notify = this.$q.notify;
-      copyToClipboard(text).then(function () {
-        notify({
-          message: "Copied to clipboard!",
-          position: "bottom",
-        });
-      });
     },
     getAmountFormated(amount, unit = "USD") {
       return formatCurrency(amount, unit);

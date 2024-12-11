@@ -112,9 +112,17 @@
 
 <script>
 import { defineComponent } from "vue";
+import { useCopyText } from 'src/composables/useCopyText';
 
 export default defineComponent({
   name: "UserConfig",
+  setup() {
+    const { copyText } = useCopyText();
+
+    return {
+      copyText,
+    };
+  },
   props: ["account"],
 
   data: function () {
@@ -139,9 +147,6 @@ export default defineComponent({
         .onOk(async () => {
           this.$emit("logout");
         });
-    },
-    copyText(text) {
-      this.$emit("copy-text", text);
     },
     clearAllData() {
       this.$emit("clear-all-data");
