@@ -623,6 +623,10 @@ import { useOrders } from 'src/composables/useOrders';
 import { useRelays } from 'src/composables/useRelays';
 import { useMerchantManagement } from 'src/composables/useMerchantManagement';
 import { useDirectMessages } from 'src/composables/useDirectMessages';
+import { useMarket } from '../composables/useMarket';
+import { useUI } from '../composables/useUI';
+import { useProducts } from '../composables/useProducts';
+import { useMarketConfig } from '../composables/useMarketConfig';
 
 import MarketConfig from "components/MarketConfig.vue";
 import UserConfig from "components/UserConfig.vue";
@@ -640,6 +644,12 @@ export default defineComponent({
   components: { MarketConfig },
   data: function () {
     return {
+      market : useMarket(),
+      ui : useUI(),
+      products : useProducts(),
+      shoppingCart : useShoppingCart(),
+      marketConfig : useMarketConfig(),
+      directMessages : useDirectMessages(),
       orderActions: useOrders(),
       cartActions: useShoppingCart(),
       relayActions: useRelays(),
@@ -683,7 +693,6 @@ export default defineComponent({
       relays: new Set(),
 
       stalls: [],
-      products: [],
       orders: {},
       profiles: [],
 
