@@ -619,6 +619,7 @@ import { defineComponent } from "vue";
 import VueQrcode from "@chenfengyuan/vue-qrcode";
 import { useCopyText } from 'src/composables/useCopyText';
 import { useShoppingCart } from 'src/composables/useShoppingCart';
+import { useOrders } from 'src/composables/useOrders';
 
 import MarketConfig from "components/MarketConfig.vue";
 import UserConfig from "components/UserConfig.vue";
@@ -636,6 +637,7 @@ export default defineComponent({
   components: { MarketConfig },
   data: function () {
     return {
+      orderActions: useOrders(),
       cartActions: useShoppingCart(),
       account: null,
       accountMetadata: null,
@@ -1794,35 +1796,22 @@ export default defineComponent({
     /////////////////////////////////////////////////////////// ORDERS ///////////////////////////////////////////////////////////
 
     async placeOrder({ event, order, cartId }) {
-      if (!this.account?.privkey) {
-        this.openAccountDialog();
-        return;
-      }
-      try {
-        this.activeOrderId = order.id;
-        event.content = await NostrTools.nip04.encrypt(
-          this.account.privkey,
-          this.checkoutStall.pubkey,
-          JSON.stringify(order)
-        );
+      const result = await this.orderActions.placeOrder(
+        { event, order, cartId },
+        this.account,
+        this.checkoutStall
+      );
 
-        event.id = NostrTools.getEventHash(event);
-        event.sig = await NostrTools.signEvent(event, this.account.privkey);
-
-        await this._sendOrderEvent(event);
+      if (result.success) {
         this._persistOrderUpdate(
           this.checkoutStall.pubkey,
-          event.created_at,
+          result.event.created_at,
           order
         );
         this.removeCart(cartId);
         this.setActivePage("shopping-cart-list");
-      } catch (error) {
-        console.warn(error);
-        this.$q.notify({
-          type: "warning",
-          message: "Failed to place order!",
-        });
+      } else if (result.error === 'no-account') {
+        this.openAccountDialog();
       }
     },
 
@@ -2004,42 +1993,12 @@ export default defineComponent({
     },
 
     _persistOrderUpdate(pubkey, eventCreatedAt, orderUpdate) {
-      let orders =
-        this.$q.localStorage.getItem(`nostrmarket.orders.${pubkey}`) || [];
-      const orderIndex = orders.findIndex((o) => o.id === orderUpdate.id);
-
-      if (orderIndex === -1) {
-        orders.unshift({
-          ...orderUpdate,
-          eventCreatedAt,
-          createdAt: eventCreatedAt,
-        });
-        this.orders[pubkey] = orders;
-        this.orders = { ...this.orders };
-        this.$q.localStorage.set(`nostrmarket.orders.${pubkey}`, orders);
-        return;
-      }
-
-      let order = orders[orderIndex];
-
-      if (orderUpdate.type === 0) {
-        order.createdAt = eventCreatedAt;
-        order = {
-          ...order,
-          ...orderUpdate,
-          message: order.message || orderUpdate.message,
-        };
-      } else {
-        order =
-          order.eventCreatedAt < eventCreatedAt
-            ? { ...order, ...orderUpdate }
-            : { ...orderUpdate, ...order };
-      }
-
-      orders.splice(orderIndex, 1, order);
-      this.orders[pubkey] = orders;
-      this.orders = { ...this.orders };
-      this.$q.localStorage.set(`nostrmarket.orders.${pubkey}`, orders);
+      this.orders = this.orderActions.persistOrderUpdate(
+        pubkey,
+        eventCreatedAt,
+        orderUpdate,
+        this.orders
+      );
     },
 
     /////////////////////////////////////////////////////////// MISC ///////////////////////////////////////////////////////////
