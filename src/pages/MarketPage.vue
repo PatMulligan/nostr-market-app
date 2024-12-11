@@ -618,6 +618,7 @@ window.$q = useQuasar();
 import { defineComponent } from "vue";
 import VueQrcode from "@chenfengyuan/vue-qrcode";
 import { useCopyText } from 'src/composables/useCopyText';
+import { useShoppingCart } from 'src/composables/useShoppingCart';
 
 import MarketConfig from "components/MarketConfig.vue";
 import UserConfig from "components/UserConfig.vue";
@@ -635,6 +636,7 @@ export default defineComponent({
   components: { MarketConfig },
   data: function () {
     return {
+      cartActions: useShoppingCart(),
       account: null,
       accountMetadata: null,
       accountDialog: {
@@ -1710,57 +1712,18 @@ export default defineComponent({
     },
     /////////////////////////////////////////////////////////// SHOPPING CART ///////////////////////////////////////////////////////////
 
+    // Update the shopping cart methods to use the composable
     addProductToCart(item) {
-      let stallCart = this.shoppingCarts.find((s) => s.id === item.stall_id);
-      if (!stallCart) {
-        stallCart = {
-          id: item.stall_id,
-          products: [],
-        };
-        this.shoppingCarts.push(stallCart);
-      }
-      stallCart.merchant = item.pubkey;
-
-      let product = stallCart.products.find((p) => p.id === item.id);
-      if (!product) {
-        product = { ...item, orderedQuantity: 0 };
-        stallCart.products.push(product);
-      }
-      product.orderedQuantity = Math.min(
-        product.quantity,
-        item.orderedQuantity || product.orderedQuantity + 1
-      );
-
-      this.$q.localStorage.set("nostrmarket.shoppingCarts", this.shoppingCarts);
-
-      this.$q.notify({
-        type: "positive",
-        message: "Product added to cart!",
-      });
+      this.shoppingCarts = this.cartActions.addProductToCart(item, this.shoppingCarts);
     },
 
     removeProductFromCart(item) {
-      const stallCart = this.shoppingCarts.find((c) => c.id === item.stallId);
-      if (stallCart) {
-        stallCart.products = stallCart.products.filter(
-          (p) => p.id !== item.productId
-        );
-        if (!stallCart.products.length) {
-          this.shoppingCarts = this.shoppingCarts.filter(
-            (s) => s.id !== item.stallId
-          );
-        }
-        this.$q.localStorage.set(
-          "nostrmarket.shoppingCarts",
-          this.shoppingCarts
-        );
-      }
-    },
-    removeCart(cartId) {
-      this.shoppingCarts = this.shoppingCarts.filter((s) => s.id !== cartId);
-      this.$q.localStorage.set("nostrmarket.shoppingCarts", this.shoppingCarts);
+      this.shoppingCarts = this.cartActions.removeProductFromCart(item, this.shoppingCarts);
     },
 
+    removeCart(cartId) {
+      this.shoppingCarts = this.cartActions.removeCart(cartId, this.shoppingCarts);
+    },
     checkoutStallCart(cart) {
       this.checkoutCart = cart;
       this.checkoutStall = this.stalls.find((s) => s.id === cart.id);
