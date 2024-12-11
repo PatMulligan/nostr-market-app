@@ -1,7 +1,13 @@
 import { useQuasar } from 'quasar';
+import { useStorage } from './useStorage';
 
 export function useShoppingCart() {
   const $q = useQuasar();
+  const storage = useStorage();
+
+  const saveCart = (cart) => {
+    storage.setItem("nostrmarket.shoppingCarts", cart);
+  };
 
   const addProductToCart = (item, shoppingCarts) => {
     let stallCart = shoppingCarts.find((s) => s.id === item.stall_id);
@@ -24,7 +30,7 @@ export function useShoppingCart() {
       item.orderedQuantity || product.orderedQuantity + 1
     );
 
-    $q.localStorage.set("nostrmarket.shoppingCarts", shoppingCarts);
+    saveCart(shoppingCarts);
 
     $q.notify({
       type: "positive",
@@ -43,14 +49,14 @@ export function useShoppingCart() {
       if (!stallCart.products.length) {
         shoppingCarts = shoppingCarts.filter((s) => s.id !== item.stallId);
       }
-      $q.localStorage.set("nostrmarket.shoppingCarts", shoppingCarts);
+      saveCart(shoppingCarts);
     }
     return shoppingCarts;
   };
 
   const removeCart = (cartId, shoppingCarts) => {
     shoppingCarts = shoppingCarts.filter((s) => s.id !== cartId);
-    $q.localStorage.set("nostrmarket.shoppingCarts", shoppingCarts);
+    saveCart(shoppingCarts);
     return shoppingCarts;
   };
 
@@ -59,4 +65,4 @@ export function useShoppingCart() {
     removeProductFromCart,
     removeCart
   };
-} 
+}

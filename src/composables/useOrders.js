@@ -1,11 +1,59 @@
 import { useQuasar } from 'quasar';
 import { useRelays } from './useRelays';
+import { useStorage } from './useStorage';
 
 export function useOrders() {
   const $q = useQuasar();
   const { findRelaysForMerchant, publishEventToRelays } = useRelays();
+  const storage = useStorage();
 
-  const placeOrder = async ({ event, order, cartId }, account, checkoutStall, markets) => {
+  const saveOrder = (pubkey, order) => {
+    const key = `nostrmarket.orders.${pubkey}`;
+    const existingOrders = storage.getItem(key, []);
+    storage.setItem(key, existingOrders);
+    return existingOrders;
+  };
+
+  const updateExistingOrder = (order, orderUpdate, eventCreatedAt) => {
+    if (orderUpdate.type === 0) {
+      return {
+        ...order,
+        ...orderUpdate,
+        createdAt: eventCreatedAt,
+        message: order.message || orderUpdate.message,
+      };
+    }
+    return order.eventCreatedAt < eventCreatedAt
+      ? { ...order, ...orderUpdate }
+      : { ...orderUpdate, ...order };
+  };
+
+  const persistOrderUpdate = (pubkey, eventCreatedAt, orderUpdate, orders) => {
+    const existingOrders = orders[pubkey] || [];
+    const orderIndex = existingOrders.findIndex((o) => o.id === orderUpdate.id);
+
+    if (orderIndex === -1) {
+      const newOrder = {
+        ...orderUpdate,
+        eventCreatedAt,
+        createdAt: eventCreatedAt,
+      };
+      existingOrders.unshift(newOrder);
+    } else {
+      const updatedOrder = updateExistingOrder(
+        existingOrders[orderIndex],
+        orderUpdate,
+        eventCreatedAt
+      );
+      existingOrders.splice(orderIndex, 1, updatedOrder);
+    }
+
+    orders[pubkey] = existingOrders;
+    saveOrder(pubkey, existingOrders);
+    return { ...orders };
+  };
+
+  const placeOrder = async ({ event, order, cartId }, account, checkoutStall) => {
     if (!account?.privkey) {
       return { success: false, error: 'no-account' };
     }
@@ -24,7 +72,7 @@ export function useOrders() {
         .filter((t) => t[0] === "p")
         .map((t) => t[1]);
 
-      const merchantRelays = findRelaysForMerchant(merchantPubkey[0], markets);
+      const merchantRelays = findRelaysForMerchant(merchantPubkey[0]);
       const relayCount = await publishEventToRelays(event, merchantRelays);
 
       $q.notify({
@@ -48,43 +96,6 @@ export function useOrders() {
       });
       return { success: false, error };
     }
-  };
-
-  const persistOrderUpdate = (pubkey, eventCreatedAt, orderUpdate, orders) => {
-    const existingOrders = orders[pubkey] || [];
-    const orderIndex = existingOrders.findIndex((o) => o.id === orderUpdate.id);
-
-    if (orderIndex === -1) {
-      existingOrders.unshift({
-        ...orderUpdate,
-        eventCreatedAt,
-        createdAt: eventCreatedAt,
-      });
-      orders[pubkey] = existingOrders;
-      $q.localStorage.set(`nostrmarket.orders.${pubkey}`, existingOrders);
-      return { ...orders };
-    }
-
-    let order = existingOrders[orderIndex];
-
-    if (orderUpdate.type === 0) {
-      order.createdAt = eventCreatedAt;
-      order = {
-        ...order,
-        ...orderUpdate,
-        message: order.message || orderUpdate.message,
-      };
-    } else {
-      order =
-        order.eventCreatedAt < eventCreatedAt
-          ? { ...order, ...orderUpdate }
-          : { ...orderUpdate, ...order };
-    }
-
-    existingOrders.splice(orderIndex, 1, order);
-    orders[pubkey] = existingOrders;
-    $q.localStorage.set(`nostrmarket.orders.${pubkey}`, existingOrders);
-    return { ...orders };
   };
 
   return {
