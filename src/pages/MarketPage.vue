@@ -633,14 +633,6 @@ import ProductFilter from "components/ProductFilter.vue";
 export default defineComponent({
   name: "MarketPage",
   components: { MarketConfig },
-  setup() {
-    const { copyText, copyUrl } = useCopyText();
-
-    return {
-      copyText,
-      copyUrl
-    };
-  },
   data: function () {
     return {
       account: null,
