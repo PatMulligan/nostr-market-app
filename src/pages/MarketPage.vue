@@ -621,6 +621,7 @@ import { useCopyText } from 'src/composables/useCopyText';
 import { useShoppingCart } from 'src/composables/useShoppingCart';
 import { useOrders } from 'src/composables/useOrders';
 import { useRelays } from 'src/composables/useRelays';
+import { useMerchantManagement } from 'src/composables/useMerchantManagement';
 
 import MarketConfig from "components/MarketConfig.vue";
 import UserConfig from "components/UserConfig.vue";
@@ -731,6 +732,7 @@ export default defineComponent({
         merchants: false,
         marketUi: false,
       },
+      merchantActions: useMerchantManagement(),
     };
   },
   watch: {
@@ -1633,77 +1635,50 @@ export default defineComponent({
       this.naddrDialog.show = true;
     },
 
-    _handleNewMerchant(market, merchantPubkey) {
-      Object.keys(this.relaysData).forEach(async (relayKey) => {
-        const relayData = this.relaysData[relayKey];
-        if (!market.relays.includes(relayData.relayUrl)) return;
-        if (relayData.merchants.includes(merchantPubkey)) return;
-
-        const events = await relayData.relay.list([
-          { kinds: [30017, 30018], authors: [merchantPubkey] },
-        ]);
-        await this._processEvents(events, relayData);
-
-        relayData.merchants.push(merchantPubkey);
-        await this._requeryRelay(relayKey);
-      });
+    async _handleNewMerchant(market, merchantPubkey) {
+      this.relaysData = await this.merchantActions.handleNewMerchant(
+        market,
+        merchantPubkey,
+        this.relaysData
+      );
     },
 
     async _handleNewRelay(relayUrl, market) {
-      const relayKey = await this._toRelayKey(relayUrl);
-      if (this.relaysData[relayKey]) {
-        const relayData = this.relaysData[relayKey];
-        const events = await relayData.relay.list([
-          { kinds: [30017, 30018], authors: market.opts.merchants },
-        ]);
-
-        await this._processEvents(events, relayData);
-        relayData.merchants = [
-          ...new Set(relayData.merchants.concat(market.opts.merchants)),
-        ];
-        await this._requeryRelay(relayKey);
-      } else {
-        await this._loadRelayData(relayUrl, market.opts.merchants);
-        await this._connectToRelay(relayKey);
-      }
-    },
-    _handleRemoveMerchant(merchantPubkey) {
-      const marketWithMerchant = this.markets.find((m) =>
-        m.opts.merchants.find((mr) => mr === merchantPubkey)
+      this.relaysData = await this.merchantActions.handleNewRelay(
+        relayUrl,
+        market,
+        this.relaysData
       );
-      // other markets still have this merchant
-      if (marketWithMerchant) return;
+    },
 
-      // remove all products and stalls from that merchant
-      this.products = this.products.filter((p) => p.pubkey !== merchantPubkey);
-      this.stalls = this.stalls.filter((s) => s.pubkey !== merchantPubkey);
+    _handleRemoveMerchant(merchantPubkey) {
+      const { products, stalls } = this.merchantActions.handleRemoveMerchant(
+        merchantPubkey,
+        this.markets,
+        this.products,
+        this.stalls
+      );
+      this.products = products;
+      this.stalls = stalls;
 
       this._removeSubscriptionsForMerchant(merchantPubkey);
     },
-    _removeSubscriptionsForMerchant(merchantPubkey) {
-      Object.keys(this.relaysData).forEach(async (relayKey) => {
-        const relayData = this.relaysData[relayKey];
-        if (!relayData.merchants.includes(merchantPubkey)) return;
-        relayData.merchants = relayData.merchants.filter(
-          (m) => m !== merchantPubkey
-        );
 
-        await this._requeryRelay(relayKey);
-      });
-    },
-    async _handleRemovedRelay(relayUrl) {
-      // todo: later
-      // leave products and stalls alone
-      const marketWitRelay = this.markets.find((m) =>
-        m.relays.find((r) => r === relayUrl)
+    async _removeSubscriptionsForMerchant(merchantPubkey) {
+      this.relaysData = await this.merchantActions.removeSubscriptionsForMerchant(
+        merchantPubkey,
+        this.relaysData
       );
-      if (!marketWitRelay) {
-        // relay no longer exists
-        const relayKey = await this._toRelayKey(relayUrl);
-        delete this.relaysData[relayKey];
-        this._persistRelaysData();
-      }
     },
+
+    async _handleRemovedRelay(relayUrl) {
+      this.relaysData = await this.merchantActions.handleRemovedRelay(
+        relayUrl,
+        this.markets,
+        this.relaysData
+      );
+    },
+
     /////////////////////////////////////////////////////////// SHOPPING CART ///////////////////////////////////////////////////////////
 
     // Update the shopping cart methods to use the composable
