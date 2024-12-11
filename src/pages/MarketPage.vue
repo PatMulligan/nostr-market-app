@@ -622,6 +622,7 @@ import { useShoppingCart } from 'src/composables/useShoppingCart';
 import { useOrders } from 'src/composables/useOrders';
 import { useRelays } from 'src/composables/useRelays';
 import { useMerchantManagement } from 'src/composables/useMerchantManagement';
+import { useDirectMessages } from 'src/composables/useDirectMessages';
 
 import MarketConfig from "components/MarketConfig.vue";
 import UserConfig from "components/UserConfig.vue";
@@ -733,6 +734,7 @@ export default defineComponent({
         marketUi: false,
       },
       merchantActions: useMerchantManagement(),
+      dmActions: useDirectMessages(),
     };
   },
   watch: {
@@ -1380,7 +1382,14 @@ export default defineComponent({
         e.content
       );
 
-      this._persistDMEvent(e, peerPubkey);
+      const updatedDms = this.dmActions.persistDmEvent(e, peerPubkey);
+      if (updatedDms && this.dmEvents?.peerPubkey === peerPubkey) {
+        this.dmEvents = updatedDms;
+      } else {
+        // just to force refresh
+        this.dmEvents = { ...this.dmEvents };
+      }
+
       if (isJson(e.content)) {
         await this._handleStructuredDm(e, peerPubkey);
       }
@@ -1702,62 +1711,28 @@ export default defineComponent({
     /////////////////////////////////////////////////////////// DIRRECT MESSAGES ///////////////////////////////////////////////////////////
 
     handleDmChatSelected(pubkey) {
-      this.dmEvents =
-        this.$q.localStorage.getItem(`nostrmarket.dm.${pubkey}`) || {};
+      this.dmEvents = this.dmActions.getDmEvents(pubkey);
     },
 
-    async sendDirectMessage(dm) {
-      if (!this.account?.pubkey) {
-        this.$q.notify({
-          type: "warning",
-          message: "Cannot send message. No user logged in!",
-        });
-        return;
-      }
-      try {
-        const event = {
-          ...(await NostrTools.getBlankEvent()),
-          kind: 4,
-          created_at: Math.floor(Date.now() / 1000),
-          tags: [["p", dm.to]],
-          pubkey: this.account.pubkey,
-        };
-        event.content = await NostrTools.nip04.encrypt(
-          this.account.privkey,
-          dm.to,
-          dm.message
-        );
-
-        event.id = NostrTools.getEventHash(event);
-        event.sig = await NostrTools.signEvent(event, this.account.privkey);
-
-        await this._sendDmEvent(event);
-        event.content = dm.message;
-        this._persistDMEvent(event, dm.to);
-      } catch (error) {
-        this.$q.notify({
-          type: "warning",
-          message: "Failed to send message!",
-        });
-      }
-    },
-
-    async _sendDmEvent(event) {
-      const toPubkey = event.tags.filter((t) => t[0] === "p").map((t) => t[1]);
-
-      let relays = this._findRelaysForMerchant(toPubkey[0]);
-      if (!relays?.length) {
-        relays = [...defaultRelays];
-      }
-      await this._publishEventToRelays(event, relays);
+    async sendDirectMessage(event, toPubkey) {
+      await this.dmActions.sendDirectMessage(
+        event,
+        toPubkey,
+        this.markets,
+        this.defaultRelays
+      );
     },
 
     _noDmEvents() {
-      const dms = this.$q.localStorage
-        .getAllKeys()
-        .filter((key) => key.startsWith("nostrmarket.dm"));
+      return this.dmActions.noDmEvents();
+    },
 
-      return dms.length === 0;
+    async _handleStructuredDm(event, content) {
+      const result = await this.dmActions.handleStructuredDm(event, content);
+      if (result.success) {
+        // Handle successful structured DM
+        // Implementation depends on your needs
+      }
     },
 
     /////////////////////////////////////////////////////////// ORDERS ///////////////////////////////////////////////////////////
@@ -1833,22 +1808,6 @@ export default defineComponent({
         message: message,
         caption: jsonData.message || "",
       });
-    },
-
-    async _handleStructuredDm(event, peerPubkey) {
-      try {
-        const jsonData = JSON.parse(event.content);
-        if ([0, 1, 2].indexOf(jsonData.type) !== -1) {
-          this._persistOrderUpdate(peerPubkey, event.created_at, jsonData);
-        }
-        if (jsonData.type === 1) {
-          this._handlePaymentRequest(jsonData);
-        } else if (jsonData.type === 2) {
-          this._handleOrderStatusUpdate(jsonData);
-        }
-      } catch (e) {
-        console.warn("Unable to handle incomming DM", e);
-      }
     },
 
     /////////////////////////////////////////////////////////// PERSIST ///////////////////////////////////////////////////////////
