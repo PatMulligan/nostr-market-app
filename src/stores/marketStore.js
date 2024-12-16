@@ -39,6 +39,11 @@ export const useMarketStore = defineStore("marketStore", {
     relaysData: {},
     shoppingCarts: [],
     markets: [],
+    activeCartDetails: {
+      cartSubtotal: 0,
+      shippingZone: null,
+      currency: "monies",
+    },
     qrCodeDialog: {
       data: {
         payment_request: null,
