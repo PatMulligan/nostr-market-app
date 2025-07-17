@@ -1,9 +1,12 @@
 import { useQuasar } from "quasar";
 import { useMarketStore } from "../stores/marketStore.js";
+import { useAppStorage } from './useAppStorage';
+import { STORAGE_KEYS } from '../utils/storage-keys';
 
 export function useShoppingCart() {
   const marketStore = useMarketStore();
   const $q = useQuasar();
+  const appStorage = useAppStorage();
 
   const addProductToCart = (item) => {
     let stallCart = marketStore.shoppingCarts.find(
@@ -28,7 +31,7 @@ export function useShoppingCart() {
       item.orderedQuantity || product.orderedQuantity + 1
     );
 
-    $q.localStorage.set("nostrmarket.shoppingCarts", marketStore.shoppingCarts);
+    appStorage.persistCoreData();
 
     $q.notify({
       type: "positive",
@@ -49,10 +52,7 @@ export function useShoppingCart() {
           (s) => s.id !== item.stallId
         );
       }
-      $q.localStorage.set(
-        "nostrmarket.shoppingCarts",
-        marketStore.shoppingCarts
-      );
+      appStorage.persistCoreData();
     }
   };
 
@@ -60,7 +60,7 @@ export function useShoppingCart() {
     marketStore.shoppingCarts = marketStore.shoppingCarts.filter(
       (s) => s.id !== cartId
     );
-    $q.localStorage.set("nostrmarket.shoppingCarts", marketStore.shoppingCarts);
+    appStorage.persistCoreData();
   };
 
   const checkoutStallCart = (cart) => {

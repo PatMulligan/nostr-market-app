@@ -1,6 +1,7 @@
 import { useQuasar } from "quasar";
 import { useMarketStore } from "../stores/marketStore";
 import { useStorage } from "./useStorage";
+import { useAppStorage } from "./useAppStorage";
 import { useRelay } from "./useRelay";
 import { useEvents } from "./useEvents";
 import { isJson, isValidKey, defaultRelays, confirm } from "../utils";
@@ -9,6 +10,7 @@ export function useMarket() {
   const $q = useQuasar();
   const marketStore = useMarketStore();
   const storage = useStorage();
+  const appStorage = useAppStorage();
   const relayService = useRelay();
   const eventService = useEvents();
 
@@ -69,7 +71,7 @@ export function useMarket() {
         },
       };
       marketStore.markets.unshift(market);
-      $q.localStorage.set("nostrmarket.markets", marketStore.markets);
+      appStorage.persistMarkets();
 
       for (const relayUrl of market.relays) {
         // do not wait for relays
@@ -134,7 +136,7 @@ export function useMarket() {
         (m) => m.d !== market.d || m.pubkey !== market.pubkey
       );
       marketStore.markets.unshift(market);
-      $q.localStorage.set("nostrmarket.markets", marketStore.markets);
+      appStorage.persistMarkets();
 
       for (const relayUrl of market.relays) {
         await _handleNewRelay(relayUrl, market);
@@ -172,7 +174,7 @@ export function useMarket() {
         (m) => m.d !== d || m.pubkey !== pubkey
       );
       marketStore.markets.unshift(market);
-      $q.localStorage.set("nostrmarket.markets", marketStore.markets);
+      appStorage.persistMarkets();
 
       removedMerchants?.forEach(_handleRemoveMerchant);
       newMerchants?.forEach((m) => _handleNewMerchant(market, m));
@@ -200,7 +202,7 @@ export function useMarket() {
       marketStore.markets = marketStore.markets.filter(
         (m) => m.d !== d || m.pubkey !== pubkey
       );
-      $q.localStorage.set("nostrmarket.markets", marketStore.markets);
+      appStorage.persistMarkets();
       if (
         marketStore.activeMarket &&
         marketStore.activeMarket.d === d &&

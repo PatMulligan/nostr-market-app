@@ -1,13 +1,16 @@
 import { useQuasar } from 'quasar'
 import { useMarketStore } from '../stores/marketStore'
 import { useStorage } from './useStorage'
+import { useAppStorage } from './useAppStorage'
 import { handleOrderStatusUpdate } from './useOrders'
 import { isJson } from '../utils'
+import { STORAGE_KEYS } from '../utils/storage-keys'
 
 export function useEvents() {
   const $q = useQuasar()
   const marketStore = useMarketStore()
   const storage = useStorage()
+  const appStorage = useAppStorage()
 
   // Create a queue for products waiting for their stalls
   let pendingProducts = [];
@@ -19,7 +22,7 @@ export function useEvents() {
     try {
       marketStore.profiles = marketStore.profiles.filter((p) => p.pubkey !== e.pubkey)
       marketStore.profiles.push({ pubkey: e.pubkey, ...e.content })
-      $q.localStorage.set("nostrmarket.profiles", marketStore.profiles)
+      appStorage.persistCoreData()
     } catch (error) {
       console.warn(error)
     }

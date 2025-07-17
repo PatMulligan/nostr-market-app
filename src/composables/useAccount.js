@@ -1,12 +1,15 @@
 import { useQuasar } from 'quasar'
 import { useMarketStore } from '../stores/marketStore'
 import { useRelay } from './useRelay'
+import { useAppStorage } from './useAppStorage'
 import { isValidKey } from '../utils'
+import { STORAGE_KEYS } from '../utils/storage-keys'
 
 export function useAccount() {
   const $q = useQuasar()
   const marketStore = useMarketStore()
   const { requeryAllRelays } = useRelay()
+  const appStorage = useAppStorage()
 
   function generateKeyPair() {
     marketStore.accountDialog.data.key = window.NostrTools.generatePrivateKey()
@@ -26,26 +29,27 @@ export function useAccount() {
       }
       const privkey = watchOnly ? null : key
       const pubkey = watchOnly ? key : window.NostrTools.getPublicKey(key)
-      $q.localStorage.set("nostrmarket.account", {
+      const accountData = {
         privkey,
         pubkey,
         nsec: window.NostrTools.nip19.nsecEncode(key),
         npub: window.NostrTools.nip19.npubEncode(pubkey),
         useExtension: false,
-      })
+      }
+      appStorage.persistAccount(accountData)
       marketStore.accountDialog.data = {
         watchOnly: false,
         key: null,
       }
       marketStore.accountDialog.show = false
-      marketStore.account = $q.localStorage.getItem("nostrmarket.account")
+      marketStore.account = $q.localStorage.getItem(STORAGE_KEYS.ACCOUNT)
       await requeryAllRelays()
     }
     marketStore.accountDialog.show = false
   }
 
   function logout() {
-    window.localStorage.removeItem("nostrmarket.account")
+    appStorage.clearAccount()
     clearNonAccountData()
     window.location.href = window.location.origin + window.location.pathname
     marketStore.account = null
@@ -66,10 +70,7 @@ export function useAccount() {
   }
 
   function clearNonAccountData() {
-    $q.localStorage
-      .getAllKeys()
-      .filter((key) => key !== "nostrmarket.account")
-      .forEach((key) => window.localStorage.removeItem(key))
+    appStorage.clearNonAccountData()
       marketStore.orders = [];
       marketStore.config = { opts: null };
       marketStore.shoppingCarts = [];

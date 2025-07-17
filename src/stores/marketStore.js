@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { useQuasar } from "quasar";
 import { isValidKey, formatCurrency, productCompare } from "../utils";
+import { STORAGE_KEYS } from "../utils/storage-keys";
 
 export const useMarketStore = defineStore("marketStore", {
   state: () => ({
@@ -195,7 +196,7 @@ export const useMarketStore = defineStore("marketStore", {
     dmPeers: (state) => {
       // force refresh by referencing dmEvents
       const temp = state.dmEvents;
-      const prefix = "nostrmarket.dm.";
+      const prefix = STORAGE_KEYS.DIRECT_MESSAGES;
       const dmKeys = state.qInstance.localStorage
         .getAllKeys()
         .filter((k) => k.startsWith(prefix));
@@ -357,7 +358,7 @@ export const useMarketStore = defineStore("marketStore", {
     },
     markNoteAsRead(noteId) {
       this.readNotes[noteId] = true;
-      this.qInstance.localStorage.set("nostrmarket.readNotes", this.readNotes);
+      this.qInstance.localStorage.set(STORAGE_KEYS.READ_NOTES, this.readNotes);
     },
     focusOnElement(elementId) {
       document.getElementById(elementId)?.scrollIntoView();
@@ -366,7 +367,7 @@ export const useMarketStore = defineStore("marketStore", {
     sortProducts(by, order = "asc") {
       this.sort.by = by;
       this.sort.order = order;
-      this.qInstance.localStorage.set("nostrmarket.sort", { by, order });
+      this.qInstance.localStorage.set(STORAGE_KEYS.SORT, { by, order });
     },
     sanitizeImageSrc(src, defaultValue) {
       try {
@@ -405,7 +406,7 @@ export const useMarketStore = defineStore("marketStore", {
 
     applyUiConfigs(opts = {}) {
       const { name, about, ui } = opts;
-      this.qInstance.localStorage.set("nostrmarket.marketplaceConfig", {
+      this.qInstance.localStorage.set(STORAGE_KEYS.MARKETPLACE_CONFIG, {
         name,
         about,
         ui,
