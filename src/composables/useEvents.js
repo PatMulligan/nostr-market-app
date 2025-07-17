@@ -5,12 +5,14 @@ import { useAppStorage } from './useAppStorage'
 import { handleOrderStatusUpdate } from './useOrders'
 import { isJson } from '../utils'
 import { STORAGE_KEYS } from '../utils/storage-keys'
+import { useLogger } from './useLogger'
 
 export function useEvents() {
   const $q = useQuasar()
   const marketStore = useMarketStore()
   const storage = useStorage()
   const appStorage = useAppStorage()
+  const logger = useLogger('events')
 
   // Create a queue for products waiting for their stalls
   let pendingProducts = [];
@@ -24,7 +26,7 @@ export function useEvents() {
       marketStore.profiles.push({ pubkey: e.pubkey, ...e.content })
       appStorage.persistCoreData()
     } catch (error) {
-      console.warn(error)
+      logger.warn('Error processing profile event', error)
     }
   }
 
@@ -32,9 +34,9 @@ export function useEvents() {
     let stall;
     try {
       stall = typeof e.content === 'string' ? JSON.parse(e.content) : e.content;
-      console.log("Processing stall:", stall);
+      logger.debug('Processing stall', { stall });
     } catch (error) {
-      console.error('Failed to parse stall event content:', error);
+      logger.error('Failed to parse stall event content', error);
       return;
     }
 
@@ -52,10 +54,10 @@ export function useEvents() {
     );
 
     if (stallIndex === -1) {
-      console.log("Adding new stall:", stallToProcess);
+      logger.debug('Adding new stall', { stallToProcess });
       marketStore.stalls.push(stallToProcess);
     } else {
-      console.log("Updating existing stall");
+      logger.debug('Updating existing stall');
       const existingStall = marketStore.stalls[stallIndex];
       if (existingStall.createdAt < stallToProcess.createdAt) {
         marketStore.stalls.splice(stallIndex, 1, stallToProcess);
@@ -68,7 +70,7 @@ export function useEvents() {
     );
 
     if (productsForThisStall.length > 0) {
-      console.log(`Processing ${productsForThisStall.length} pending products for stall ${stallToProcess.id}`);
+      logger.debug(`Processing ${productsForThisStall.length} pending products for stall ${stallToProcess.id}`);
       productsForThisStall.forEach(item => {
         processProductWithStall(item.product, item.event, stallToProcess);
       });
@@ -84,16 +86,16 @@ export function useEvents() {
     let p;
     try {
       p = typeof e.content === 'string' ? JSON.parse(e.content) : e.content;
-      console.log("Parsed product:", p);
+      logger.debug('Parsed product', { product: p });
     } catch (error) {
-      console.error('Failed to parse product event content:', error);
+      logger.error('Failed to parse product event content', error);
       return;
     }
 
     const stall = marketStore.stalls.find(s => s.id === p.stall_id);
 
     if (!stall) {
-      console.log("Queueing product waiting for stall:", p.stall_id);
+      logger.debug('Queueing product waiting for stall', { stallId: p.stall_id });
       pendingProducts.push({ product: p, event: e });
       return;
     }
@@ -125,19 +127,19 @@ export function useEvents() {
   }
 
   const processProduct = (product) => {
-    console.log("Finding product with id:", product.id, "and pubkey:", product.pubkey);
+    logger.debug('Finding product', { id: product.id, pubkey: product.pubkey });
     const productIndex = marketStore.products.findIndex(
       (p) => p.id === product.id && p.pubkey === product.pubkey
     )
-    console.log("Product index:", productIndex);
+    logger.debug('Product index', { productIndex });
 
     if (productIndex === -1) {
-      console.log("Adding new product");
+      logger.debug('Adding new product');
       marketStore.products.push(product)
       return
     }
 
-    console.log("Updating existing product");
+    logger.debug('Updating existing product');
     const existingProduct = marketStore.products[productIndex]
     existingProduct.relayUrls = [
       ...new Set(product.relayUrls.concat(existingProduct.relayUrls)),
@@ -179,7 +181,7 @@ export function useEvents() {
         handleOrderStatusUpdate(jsonData);
       }
     } catch (e) {
-      console.warn("Unable to handle incomming DM", e);
+      logger.warn('Unable to handle incoming DM', e);
     }
   }
 
@@ -190,7 +192,7 @@ export function useEvents() {
     )[1]
     const isSentByMe = e.pubkey === marketStore.account.pubkey
     if (receiverPubkey !== marketStore.account.pubkey && !isSentByMe) {
-      console.warn("Unexpected DM. Dropped!")
+      logger.warn('Unexpected DM dropped', { senderPubkey: e.pubkey, receiverPubkey })
       return
     }
 

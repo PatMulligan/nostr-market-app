@@ -5,6 +5,7 @@ import { useAppStorage } from "./useAppStorage";
 import { useRelay } from "./useRelay";
 import { useEvents } from "./useEvents";
 import { isJson, isValidKey, defaultRelays, confirm } from "../utils";
+import { useLogger } from "./useLogger";
 
 export function useMarket() {
   const $q = useQuasar();
@@ -13,12 +14,13 @@ export function useMarket() {
   const appStorage = useAppStorage();
   const relayService = useRelay();
   const eventService = useEvents();
+  const logger = useLogger('market');
 
   const navigateTo = (
     page,
     opts = { stall: null, product: null, pubkey: null }
   ) => {
-    console.log("### navigateTo", page, opts);
+    logger.debug('Navigating to page', { page, opts });
 
     const { stall, product, pubkey } = opts;
     const url = new URL(window.location);
@@ -81,7 +83,7 @@ export function useMarket() {
         showMarketConfig(0);
       }
     } catch (error) {
-      console.warn(error);
+      logger.warn('Error creating market', error);
     } finally {
       marketStore.setActivePage("market-config");
     }
@@ -128,7 +130,7 @@ export function useMarket() {
           marketStore.config = { ...marketStore.config, opts: market.opts };
           marketStore.applyUiConfigs(market?.opts);
         } else {
-          console.log("Loading markets without UI");
+          logger.debug('Loading markets without UI');
         }
       }
 
@@ -142,7 +144,7 @@ export function useMarket() {
         await _handleNewRelay(relayUrl, market);
       }
     } catch (error) {
-      console.warn(error);
+      logger.warn('Error creating market', error);
     } finally {
       marketStore.setActivePage("market");
     }
@@ -179,8 +181,8 @@ export function useMarket() {
       removedMerchants?.forEach(_handleRemoveMerchant);
       newMerchants?.forEach((m) => _handleNewMerchant(market, m));
 
-      console.log("### newRelays", newRelays);
-      console.log("### removedRelays", removedRelays);
+      logger.debug('New relays', { newRelays });
+      logger.debug('Removed relays', { removedRelays });
 
       newRelays?.forEach((r) => _handleNewRelay(r, market));
       removedRelays?.forEach(_handleRemovedRelay);
@@ -189,7 +191,7 @@ export function useMarket() {
       storage.persistStallsAndProducts();
       storage.persistRelaysData();
     } catch (error) {
-      console.warn(error);
+      logger.warn('Error creating market', error);
     } finally {
       marketStore.isLoading = false;
     }
@@ -218,7 +220,7 @@ export function useMarket() {
       storage.persistStallsAndProducts();
       storage.persistRelaysData();
     } catch (error) {
-      console.warn(error);
+      logger.warn('Error creating market', error);
     } finally {
       marketStore.isLoading = false;
     }
@@ -249,7 +251,7 @@ export function useMarket() {
       return;
     }
 
-    console.log("### marketData", marketData);
+    logger.debug('Publishing market data', { marketData });
     const identifier = marketData.d ?? crypto.randomUUID();
     const event = {
       ...(await window.NostrTools.getBlankEvent()),
@@ -278,7 +280,7 @@ export function useMarket() {
           : "The market profile could not be published",
       });
     } catch (err) {
-      console.error(err);
+      logger.error('Cannot publish market profile', err);
       $q.notify({
         message: "Cannot publish market profile",
         caption: `Error: ${err}`,

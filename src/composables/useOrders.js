@@ -3,6 +3,7 @@ import { useMarketStore } from '../stores/marketStore'
 import { useShoppingCart } from '../composables/useShoppingCart'
 import { useStorage } from '../composables/useStorage'
 import { useRelay } from '../composables/useRelay'
+import { useLogger } from './useLogger'
 
 const marketStore = useMarketStore()
 
@@ -32,6 +33,7 @@ export function useOrders() {
   const shoppingCart = useShoppingCart()
   const storage = useStorage()
   const relayService = useRelay()
+  const logger = useLogger('orders')
 
   const placeOrder = async ({ event, order, cartId }) => {
     if (!marketStore.account?.privkey) {
@@ -58,7 +60,7 @@ export function useOrders() {
       shoppingCart.removeCart(cartId)
       marketStore.setActivePage("shopping-cart-list")
     } catch (error) {
-      console.warn(error)
+      logger.warn('Failed to place order', error)
       $q.notify({
         type: "warning",
         message: "Failed to place order!",

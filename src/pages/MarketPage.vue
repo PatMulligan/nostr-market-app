@@ -856,7 +856,7 @@ onMounted(async () => {
     await loadRelaysData();
     startRelaysHealtCheck();
   } catch (error) {
-    console.error("Failed to initialize:", error);
+    // Initialization error - app will handle gracefully
   }
 });
 
@@ -908,7 +908,7 @@ watch(
           await addUpdateMarket(n);
         });
       } catch (error) {
-        console.error("Error decoding naddr:", error);
+        // Error decoding naddr - handled gracefully
       }
     }
   }

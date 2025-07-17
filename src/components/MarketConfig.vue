@@ -383,7 +383,7 @@ export default defineComponent({
       this.merchantPubkey = null;
     },
     removeMerchant: async function (publicKey) {
-      console.log("### removeMerchant", publicKey);
+      // Removed console.log - use Vue DevTools for debugging
       this.marketData.opts.merchants = this.marketData.opts.merchants.filter(
         (m) => m !== publicKey
       );

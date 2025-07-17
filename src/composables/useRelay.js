@@ -2,11 +2,13 @@ import { useMarketStore } from "../stores/marketStore.js";
 import { useQuasar } from "quasar"
 import { useEvents } from "./useEvents"
 import { hash } from "../utils"
+import { useLogger } from "./useLogger"
 
 export function useRelay() {
   const marketStore = useMarketStore();
   const eventService = useEvents()
   const $q = useQuasar()
+  const logger = useLogger('relay')
 
   const startRelaysHealtCheck = () => {
     setInterval(() => {
@@ -62,23 +64,23 @@ export function useRelay() {
     const relay = ($q.localStorage.getItem("nostrmarket.relays") || []).find(
       (r) => r.relayUrl === relayUrl
     );
-    console.log("### getLastEventForRelay", relayUrl, relay);
+    logger.debug('Getting last event for relay', { relayUrl, relay });
     return relay?.lastEventAt || 0;
   };
 
   const connectToRelay = async (relayKey) => {
     const relayData = marketStore.relaysData[relayKey];
     try {
-      console.log(`Trying to connect to relay ${relayData.relayUrl}`);
+      logger.info(`Connecting to relay ${relayData.relayUrl}`);
       relayData.relay = window.NostrTools.relayInit(relayData.relayUrl);
       relayData.relay.on("connect", () => {
         relayData.connected = true;
         relayData.error = null;
-        console.log(`🟢 Connected to relay ${relayData.relayUrl}`);
+        logger.info(`Connected to relay ${relayData.relayUrl}`);
         queryRelay(relayKey);
       });
       relayData.relay.on("error", (error) => {
-        console.warn(`Error by relay ${relayData.relayUrl}`);
+        logger.warn(`Error from relay ${relayData.relayUrl}`, error);
         relayData.connected = false;
         relayData.error = error;
       });
@@ -86,7 +88,7 @@ export function useRelay() {
     } catch (error) {
       relayData.connected = false;
       relayData.error = `${error}`;
-      console.warn(`Failed to connect to ${relayData.relayUrl}`);
+      logger.error(`Failed to connect to ${relayData.relayUrl}`, error);
     }
   };
 
@@ -188,7 +190,7 @@ export function useRelay() {
       }
       return true;
     } catch (error) {
-      console.warn(error);
+      logger.warn('Error publishing event to relay', error);
       return false;
     }
   };

@@ -7,6 +7,7 @@ export * from './formatting.js';
 export * from './nostr.js';
 export * from './crypto.js';
 export * from './storage-keys.js';
+export * from './logging.js';
 
 /**
  * Create a confirm dialog configuration object

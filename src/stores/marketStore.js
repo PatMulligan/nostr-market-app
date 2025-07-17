@@ -2,11 +2,12 @@ import { defineStore } from "pinia";
 import { useQuasar } from "quasar";
 import { isValidKey, formatCurrency, productCompare } from "../utils";
 import { STORAGE_KEYS } from "../utils/storage-keys";
+import { useLogger } from "../composables/useLogger";
 
 export const useMarketStore = defineStore("marketStore", {
   state: () => ({
     defaultBanner: "https://atitlan.io/atitlanio-volight.png",
-    defaultLogo: "https://atitlan.io/aio_electric.png",
+    defaultLogo: "https://atitlan.io/aio.png",
     defaultMarketNaddr:
       "naddr1qqjrzerxxu6xxdm994nxyc3s956xzdpc95ukyv3n94nxydrzvgunjcn9x56rwqgkwaehxw309ahx7um5wghxzarfw3kxzm3wd9hsz9nhwden5te0wfjkccte9eshg6t5d3skutnfdupzqz2527ue2pt5ttxukc3juz8m6x6kkha3lymcq5c6ugz7f48grs9pqvzqqqr4gvz5v3j7",
     account: null,
@@ -91,6 +92,7 @@ export const useMarketStore = defineStore("marketStore", {
       marketUi: false,
     },
     qInstance: useQuasar(),
+    logger: useLogger('store'),
   }),
   getters: {
     isMobile() {
@@ -314,13 +316,13 @@ export const useMarketStore = defineStore("marketStore", {
       };
     },
     handleFilterData(filterData) {
-      console.log("### handleFilterData", filterData);
+      this.logger.debug('Handling filter data', { filterData });
       this.filterData = filterData;
       this.setActivePage("market");
     },
     async _handleQueryParams(params) {
       const merchantPubkey = params.get("merchant");
-      console.log("### merchantPubkey", merchantPubkey);
+      this.logger.debug('Handling query params', { merchantPubkey });
       const stallId = params.get("stall");
       const productId = params.get("product");
 
@@ -339,15 +341,13 @@ export const useMarketStore = defineStore("marketStore", {
             icon: "warning",
           });
         } else if (this.allMerchants.includes(merchantPubkey)) {
-          console.log(
-            `Request (URL) merchant (${merchantPubkey}) already exists!`
-          );
+          this.logger.debug(`Request (URL) merchant (${merchantPubkey}) already exists!`);
         } else {
           this.$q
             .dialog(
               confirm(
                 "We found a merchant pubkey in your request. " +
-                  "Do you want to add it to the merchants list?"
+                "Do you want to add it to the merchants list?"
               )
             )
             .onOk(async () => {
@@ -375,7 +375,7 @@ export const useMarketStore = defineStore("marketStore", {
           new URL(src);
           return src;
         }
-      } catch {}
+      } catch { }
       return defaultValue;
     },
     toggleCategoryFilter(category) {
@@ -390,9 +390,8 @@ export const useMarketStore = defineStore("marketStore", {
       this.accountDialog.show = true;
     },
     setActivePage(page = "market") {
-      console.log(page);
+      this.logger.debug('Setting active page', { page });
       this.activePage = page;
-      console.log(this.activePage);
     },
 
     transitToPage(pageName) {

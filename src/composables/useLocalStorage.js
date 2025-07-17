@@ -4,9 +4,11 @@
  */
 
 import { useQuasar } from 'quasar';
+import { useLogger } from './useLogger';
 
 export function useLocalStorage() {
   const $q = useQuasar();
+  const logger = useLogger('storage');
 
   /**
    * Get item from localStorage
@@ -18,7 +20,7 @@ export function useLocalStorage() {
     try {
       return $q.localStorage.getItem(key) || defaultValue;
     } catch (error) {
-      console.warn(`Error getting localStorage item "${key}":`, error);
+      logger.warn(`Error getting localStorage item "${key}"`, error);
       return defaultValue;
     }
   };
@@ -34,7 +36,7 @@ export function useLocalStorage() {
       $q.localStorage.set(key, value);
       return true;
     } catch (error) {
-      console.warn(`Error setting localStorage item "${key}":`, error);
+      logger.warn(`Error setting localStorage item "${key}"`, error);
       return false;
     }
   };
@@ -49,7 +51,7 @@ export function useLocalStorage() {
       window.localStorage.removeItem(key);
       return true;
     } catch (error) {
-      console.warn(`Error removing localStorage item "${key}":`, error);
+      logger.warn(`Error removing localStorage item "${key}"`, error);
       return false;
     }
   };
@@ -63,7 +65,7 @@ export function useLocalStorage() {
     try {
       return window.localStorage.getItem(key) !== null;
     } catch (error) {
-      console.warn(`Error checking localStorage item "${key}":`, error);
+      logger.warn(`Error checking localStorage item "${key}"`, error);
       return false;
     }
   };
@@ -77,7 +79,7 @@ export function useLocalStorage() {
       window.localStorage.clear();
       return true;
     } catch (error) {
-      console.warn('Error clearing localStorage:', error);
+      logger.warn('Error clearing localStorage', error);
       return false;
     }
   };
@@ -90,7 +92,7 @@ export function useLocalStorage() {
     try {
       return $q.localStorage.getAllKeys();
     } catch (error) {
-      console.warn('Error getting all localStorage keys:', error);
+      logger.warn('Error getting all localStorage keys', error);
       return [];
     }
   };
@@ -104,7 +106,7 @@ export function useLocalStorage() {
     try {
       return getAllKeys().filter(key => key.startsWith(prefix));
     } catch (error) {
-      console.warn(`Error getting keys with prefix "${prefix}":`, error);
+      logger.warn(`Error getting keys with prefix "${prefix}"`, error);
       return [];
     }
   };
@@ -120,7 +122,7 @@ export function useLocalStorage() {
       keysToRemove.forEach(key => removeItem(key));
       return true;
     } catch (error) {
-      console.warn(`Error removing keys with prefix "${prefix}":`, error);
+      logger.warn(`Error removing keys with prefix "${prefix}"`, error);
       return false;
     }
   };
