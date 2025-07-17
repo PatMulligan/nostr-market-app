@@ -2,16 +2,17 @@ import { useQuasar } from 'quasar'
 import { useMarketStore } from '../stores/marketStore'
 import { useStorage } from './useStorage'
 import { handleOrderStatusUpdate } from './useOrders'
-import { useEventBus } from './eventBus'
 
 export function useEvents() {
   const $q = useQuasar()
   const marketStore = useMarketStore()
   const storage = useStorage()
-  const eventBus = useEventBus()
 
   // Create a queue for products waiting for their stalls
   let pendingProducts = [];
+  
+  // Track processed event IDs to prevent duplicates
+  const processedEventIds = new Set()
 
   const processProfileEvents = (e) => {
     try {
@@ -200,7 +201,6 @@ export function useEvents() {
 
     if (isJson(e.content)) {
       await handleStructuredDm(e, peerPubkey);
-      // eventBus.processEvent(e, { type: 'dm', peerPubkey })
     }
   }
 
@@ -226,15 +226,35 @@ export function useEvents() {
     marketStore.stalls = marketStore.stalls.filter((s) => !isDeletedStall(s))
   }
 
-  // Register event handlers
-  eventBus.registerHandler(0, processProfileEvents)
-  eventBus.registerHandler(4, processDmEvents)
-  eventBus.registerHandler(5, processDeleteEvents)
-  eventBus.registerHandler(30017, processStallEvents)
-  eventBus.registerHandler(30018, processProductEvents)
+  const processEvent = async (event, relayData) => {
+    if (processedEventIds.has(event.id)) return
+    processedEventIds.add(event.id)
+
+    switch (event.kind) {
+      case 0:
+        return processProfileEvents(event)
+      case 4:
+        return processDmEvents(event)
+      case 5:
+        return processDeleteEvents(event)
+      case 30017:
+        return processStallEvents(event)
+      case 30018:
+        return processProductEvents(event)
+    }
+  }
+
+  const processEvents = async (events, relayData) => {
+    if (!events?.length) return
+
+    for (const event of events) {
+      await processEvent(event, relayData)
+    }
+  }
 
   return {
-    processEvents: eventBus.processEvents
+    processEvents,
+    processEvent
   }
 }
 

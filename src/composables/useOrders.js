@@ -3,12 +3,11 @@ import { useMarketStore } from '../stores/marketStore'
 import { useShoppingCart } from '../composables/useShoppingCart'
 import { useStorage } from '../composables/useStorage'
 import { useRelay } from '../composables/useRelay'
-import { useEventBus } from './eventBus'
-import { useEvents } from '../composables/useEvents'
 
 const marketStore = useMarketStore()
 
 export function handleOrderStatusUpdate(jsonData) {
+  const $q = useQuasar()
   if (jsonData.id && jsonData.id !== marketStore.activeOrderId) {
     return
   }
@@ -32,7 +31,6 @@ export function useOrders() {
   const $q = useQuasar()
   const shoppingCart = useShoppingCart()
   const storage = useStorage()
-  const eventBus = useEventBus()
   const relayService = useRelay()
 
   const placeOrder = async ({ event, order, cartId }) => {
@@ -91,30 +89,6 @@ export function useOrders() {
     }
   }
 
-  const handleOrderEvent = async (event, { type, peerPubkey }) => {
-    console.warn("inside handleOrderEvent")
-    if (type !== 'dm') return
-
-    try {
-      const jsonData = JSON.parse(event.content)
-      if ([0, 1, 2].indexOf(jsonData.type) !== -1) {
-        storage.persistOrderUpdate(peerPubkey, event.created_at, jsonData)
-      }
-      console.log(jsonData)
-      if (jsonData.type === 1) {
-        console.warn("type 1")
-        handlePaymentRequest(jsonData)
-      } else if (jsonData.type === 2) {
-        console.warn("type 2")
-        handleOrderStatusUpdate(jsonData)
-      }
-    } catch (e) {
-      console.warn("Unable to handle incoming order event", e)
-    }
-  }
-
-  // Register order event handler
-  eventBus.registerHandler('dm', handleOrderEvent)
 
   return {
     placeOrder,

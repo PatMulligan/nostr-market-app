@@ -1,10 +1,10 @@
 import { useMarketStore } from "../stores/marketStore.js";
 import { useQuasar } from "quasar"
-import { useEventBus } from "./eventBus"
+import { useEvents } from "./useEvents"
 
 export function useRelay() {
   const marketStore = useMarketStore();
-  const eventBus = useEventBus()
+  const eventService = useEvents()
   const $q = useQuasar()
 
   const startRelaysHealtCheck = () => {
@@ -148,13 +148,13 @@ export function useRelay() {
     const stallFilters = buildRelayFilters(relayData, 'stalls');
     const stallEvents = await relayData.relay.list(stallFilters);
     if (stallEvents?.length) {
-      await eventBus.processEvents(stallEvents, relayData);
+      await eventService.processEvents(stallEvents, relayData);
     }
 
     const productFilters = buildRelayFilters(relayData, 'products');
     const productEvents = await relayData.relay.list(productFilters);
     if (productEvents?.length) {
-      await eventBus.processEvents(productEvents, relayData);
+      await eventService.processEvents(productEvents, relayData);
     }
 
     const allFilters = buildRelayFilters(relayData, 'all');
@@ -162,7 +162,7 @@ export function useRelay() {
     relayData.sub.on(
       "event",
       (event) => {
-        eventBus.processEvent(event, relayData);
+        eventService.processEvent(event, relayData);
       },
       { id: "masterSub" }
     );
