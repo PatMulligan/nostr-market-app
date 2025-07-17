@@ -3,6 +3,7 @@ import { useMarketStore } from "../stores/marketStore";
 import { useStorage } from "./useStorage";
 import { useRelay } from "./useRelay";
 import { useEvents } from "./useEvents";
+import { isJson, isValidKey, defaultRelays, confirm } from "../utils";
 
 export function useMarket() {
   const $q = useQuasar();
@@ -89,7 +90,7 @@ export function useMarket() {
 
     try {
       marketStore.setActivePage("loading");
-      const { type, data } = NostrTools.nip19.decode(naddr);
+      const { type, data } = window.NostrTools.nip19.decode(naddr);
       if (type !== "naddr" || data.kind !== 30019) return; // just double check
 
       const market = {
@@ -249,16 +250,16 @@ export function useMarket() {
     console.log("### marketData", marketData);
     const identifier = marketData.d ?? crypto.randomUUID();
     const event = {
-      ...(await NostrTools.getBlankEvent()),
+      ...(await window.NostrTools.getBlankEvent()),
       kind: 30019,
       content: JSON.stringify(marketData.opts),
       created_at: Math.floor(Date.now() / 1000),
       tags: [["d", identifier]],
       pubkey: marketStore.account.pubkey,
     };
-    event.id = NostrTools.getEventHash(event);
+    event.id = window.NostrTools.getEventHash(event);
     try {
-      event.sig = await NostrTools.getSignature(
+      event.sig = await window.NostrTools.getSignature(
         event,
         marketStore.account.privkey
       );
@@ -283,7 +284,7 @@ export function useMarket() {
       });
       return;
     }
-    const naddr = NostrTools.nip19.naddrEncode({
+    const naddr = window.NostrTools.nip19.naddrEncode({
       pubkey: event.pubkey,
       kind: 30019,
       identifier: identifier,

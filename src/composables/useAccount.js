@@ -1,6 +1,7 @@
 import { useQuasar } from 'quasar'
 import { useMarketStore } from '../stores/marketStore'
 import { useRelay } from './useRelay'
+import { isValidKey } from '../utils'
 
 export function useAccount() {
   const $q = useQuasar()
@@ -8,7 +9,7 @@ export function useAccount() {
   const { requeryAllRelays } = useRelay()
 
   function generateKeyPair() {
-    marketStore.accountDialog.data.key = NostrTools.generatePrivateKey()
+    marketStore.accountDialog.data.key = window.NostrTools.generatePrivateKey()
     marketStore.accountDialog.data.watchOnly = false
   }
 
@@ -20,16 +21,16 @@ export function useAccount() {
     if (isValidKey(marketStore.accountDialog.data.key, "nsec")) {
       let { key, watchOnly } = marketStore.accountDialog.data
       if (key.startsWith("n")) {
-        let { type, data } = NostrTools.nip19.decode(key)
+        let { type, data } = window.NostrTools.nip19.decode(key)
         key = data
       }
       const privkey = watchOnly ? null : key
-      const pubkey = watchOnly ? key : NostrTools.getPublicKey(key)
+      const pubkey = watchOnly ? key : window.NostrTools.getPublicKey(key)
       $q.localStorage.set("nostrmarket.account", {
         privkey,
         pubkey,
-        nsec: NostrTools.nip19.nsecEncode(key),
-        npub: NostrTools.nip19.npubEncode(pubkey),
+        nsec: window.NostrTools.nip19.nsecEncode(key),
+        npub: window.NostrTools.nip19.npubEncode(pubkey),
         useExtension: false,
       })
       marketStore.accountDialog.data = {

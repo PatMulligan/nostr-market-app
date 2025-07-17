@@ -40,14 +40,14 @@ export function useOrders() {
     }
     try {
       marketStore.activeOrderId = order.id
-      event.content = await NostrTools.nip04.encrypt(
+      event.content = await window.NostrTools.nip04.encrypt(
         marketStore.account.privkey,
         marketStore.checkoutStall.pubkey,
         JSON.stringify(order)
       )
 
-      event.id = NostrTools.getEventHash(event)
-      event.sig = await NostrTools.getSignature(event, marketStore.account.privkey)
+      event.id = window.NostrTools.getEventHash(event)
+      event.sig = await window.NostrTools.getSignature(event, marketStore.account.privkey)
 
       await sendOrderEvent(event)
       storage.persistOrderUpdate(

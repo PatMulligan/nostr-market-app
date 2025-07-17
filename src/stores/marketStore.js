@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { useQuasar } from "quasar";
+import { isValidKey, formatCurrency, productCompare } from "../utils";
 
 export const useMarketStore = defineStore("marketStore", {
   state: () => ({

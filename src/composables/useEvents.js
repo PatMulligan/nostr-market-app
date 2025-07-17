@@ -2,6 +2,7 @@ import { useQuasar } from 'quasar'
 import { useMarketStore } from '../stores/marketStore'
 import { useStorage } from './useStorage'
 import { handleOrderStatusUpdate } from './useOrders'
+import { isJson } from '../utils'
 
 export function useEvents() {
   const $q = useQuasar()
@@ -191,7 +192,7 @@ export function useEvents() {
     }
 
     const peerPubkey = isSentByMe ? receiverPubkey : e.pubkey
-    e.content = await NostrTools.nip04.decrypt(
+    e.content = await window.NostrTools.nip04.decrypt(
       marketStore.account.privkey,
       peerPubkey,
       e.content
@@ -258,11 +259,3 @@ export function useEvents() {
   }
 }
 
-function isJson(str) {
-  try {
-    JSON.parse(str)
-    return true
-  } catch (e) {
-    return false
-  }
-}

@@ -1,6 +1,7 @@
 import { useMarketStore } from "../stores/marketStore.js";
 import { useQuasar } from "quasar"
 import { useEvents } from "./useEvents"
+import { hash } from "../utils"
 
 export function useRelay() {
   const marketStore = useMarketStore();
@@ -69,7 +70,7 @@ export function useRelay() {
     const relayData = marketStore.relaysData[relayKey];
     try {
       console.log(`Trying to connect to relay ${relayData.relayUrl}`);
-      relayData.relay = NostrTools.relayInit(relayData.relayUrl);
+      relayData.relay = window.NostrTools.relayInit(relayData.relayUrl);
       relayData.relay.on("connect", () => {
         relayData.connected = true;
         relayData.error = null;
