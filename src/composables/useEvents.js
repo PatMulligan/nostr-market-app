@@ -34,9 +34,14 @@ export function useEvents() {
     let stall;
     try {
       stall = typeof e.content === 'string' ? JSON.parse(e.content) : e.content;
-      logger.debug('Processing stall', { stall });
+      logger.debug('Processing stall from merchant', { 
+        stallId: stall.id || e.d,
+        stallName: stall.name,
+        merchantPubkey: e.pubkey,
+        relayUrl: e.relayUrl
+      });
     } catch (error) {
-      logger.error('Failed to parse stall event content', error);
+      logger.error('Failed to parse stall event content from merchant', { merchantPubkey: e.pubkey, error });
       return;
     }
 
@@ -54,10 +59,20 @@ export function useEvents() {
     );
 
     if (stallIndex === -1) {
-      logger.debug('Adding new stall', { stallToProcess });
+      logger.debug('Adding new stall from merchant', { 
+        stallId: stallToProcess.id,
+        stallName: stallToProcess.name,
+        merchantPubkey: stallToProcess.pubkey,
+        relayUrl: e.relayUrl
+      });
       marketStore.stalls.push(stallToProcess);
     } else {
-      logger.debug('Updating existing stall');
+      logger.debug('Updating existing stall from merchant', {
+        stallId: stallToProcess.id,
+        stallName: stallToProcess.name,
+        merchantPubkey: stallToProcess.pubkey,
+        relayUrl: e.relayUrl
+      });
       const existingStall = marketStore.stalls[stallIndex];
       if (existingStall.createdAt < stallToProcess.createdAt) {
         marketStore.stalls.splice(stallIndex, 1, stallToProcess);
@@ -86,16 +101,27 @@ export function useEvents() {
     let p;
     try {
       p = typeof e.content === 'string' ? JSON.parse(e.content) : e.content;
-      logger.debug('Parsed product', { product: p });
+      logger.debug('Processing product from merchant', { 
+        productId: p.id || e.d,
+        productName: p.name,
+        stallId: p.stall_id,
+        merchantPubkey: e.pubkey,
+        relayUrl: e.relayUrl
+      });
     } catch (error) {
-      logger.error('Failed to parse product event content', error);
+      logger.error('Failed to parse product event content from merchant', { merchantPubkey: e.pubkey, error });
       return;
     }
 
     const stall = marketStore.stalls.find(s => s.id === p.stall_id);
 
     if (!stall) {
-      logger.debug('Queueing product waiting for stall', { stallId: p.stall_id });
+      logger.debug('Queueing product from merchant waiting for stall', { 
+        productId: p.id || e.d,
+        productName: p.name,
+        stallId: p.stall_id,
+        merchantPubkey: e.pubkey
+      });
       pendingProducts.push({ product: p, event: e });
       return;
     }
@@ -127,19 +153,34 @@ export function useEvents() {
   }
 
   const processProduct = (product) => {
-    logger.debug('Finding product', { id: product.id, pubkey: product.pubkey });
+    logger.debug('Processing product from merchant', { 
+      productId: product.id, 
+      productName: product.name,
+      stallName: product.stallName,
+      merchantPubkey: product.pubkey 
+    });
     const productIndex = marketStore.products.findIndex(
       (p) => p.id === product.id && p.pubkey === product.pubkey
     )
-    logger.debug('Product index', { productIndex });
 
     if (productIndex === -1) {
-      logger.debug('Adding new product');
+      logger.debug('Adding new product from merchant', {
+        productId: product.id,
+        productName: product.name,
+        stallName: product.stallName,
+        merchantPubkey: product.pubkey,
+        price: product.price,
+        currency: product.currency
+      });
       marketStore.products.push(product)
       return
     }
 
-    logger.debug('Updating existing product');
+    logger.debug('Updating existing product from merchant', {
+      productId: product.id,
+      productName: product.name,
+      merchantPubkey: product.pubkey
+    });
     const existingProduct = marketStore.products[productIndex]
     existingProduct.relayUrls = [
       ...new Set(product.relayUrls.concat(existingProduct.relayUrls)),

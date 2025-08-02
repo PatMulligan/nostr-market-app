@@ -853,6 +853,7 @@ onMounted(async () => {
     await addUpdateMarket(defaultMarketNaddr.value, false);
 
     isLoading.value = false;
+    console.log('[DEBUG] About to load relay data, markets:', JSON.stringify(marketStore.markets, null, 2));
     await loadRelaysData();
     startRelaysHealtCheck();
   } catch (error) {

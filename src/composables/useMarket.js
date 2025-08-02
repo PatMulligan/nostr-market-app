@@ -299,14 +299,31 @@ export function useMarket() {
   };
 
   const _handleNewMerchant = (market, merchantPubkey) => {
+    logger.debug('Handling new merchant', { merchantPubkey, marketName: market.opts?.name });
+    
     Object.keys(marketStore.relaysData).forEach(async (relayKey) => {
       const relayData = marketStore.relaysData[relayKey];
       if (!market.relays.includes(relayData.relayUrl)) return;
       if (relayData.merchants.includes(merchantPubkey)) return;
 
+      logger.debug('Fetching items from merchant', { 
+        merchantPubkey, 
+        relayUrl: relayData.relayUrl,
+        relayKey 
+      });
+
       const events = await relayData.relay.list([
         { kinds: [30017, 30018], authors: [merchantPubkey] },
       ]);
+      
+      logger.debug('Retrieved events from merchant', { 
+        merchantPubkey, 
+        relayUrl: relayData.relayUrl,
+        eventCount: events?.length || 0,
+        stallEvents: events?.filter(e => e.kind === 30017).length || 0,
+        productEvents: events?.filter(e => e.kind === 30018).length || 0
+      });
+      
       await eventService.processEvents(events, relayData);
 
       relayData.merchants.push(merchantPubkey);
@@ -316,11 +333,27 @@ export function useMarket() {
 
   const _handleNewRelay = async (relayUrl, market) => {
     const relayKey = await relayService.toRelayKey(relayUrl);
+    logger.debug('Handling new relay', { relayUrl, merchantCount: market.opts.merchants?.length });
+    
     if (marketStore.relaysData[relayKey]) {
       const relayData = marketStore.relaysData[relayKey];
+      
+      logger.debug('Fetching merchant data from existing relay', {
+        relayUrl,
+        merchants: market.opts.merchants
+      });
+      
       const events = await relayData.relay.list([
         { kinds: [30017, 30018], authors: market.opts.merchants },
       ]);
+
+      logger.debug('Retrieved events from relay for merchants', {
+        relayUrl,
+        merchants: market.opts.merchants,
+        eventCount: events?.length || 0,
+        stallEvents: events?.filter(e => e.kind === 30017).length || 0,
+        productEvents: events?.filter(e => e.kind === 30018).length || 0
+      });
 
       await eventService.processEvents(events, relayData);
       relayData.merchants = [
@@ -328,6 +361,7 @@ export function useMarket() {
       ];
       await relayService.requeryRelay(relayKey);
     } else {
+      logger.debug('Loading new relay data', { relayUrl, merchants: market.opts.merchants });
       await relayService.loadRelayData(relayUrl, market.opts.merchants);
       await relayService.connectToRelay(relayKey);
     }

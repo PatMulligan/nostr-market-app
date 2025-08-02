@@ -28,14 +28,29 @@ export function useRelay() {
   };
 
   const loadRelaysData = async () => {
+    console.log('[DEBUG] loadRelaysData called');
     if (!marketStore.relaysData) {
       marketStore.relaysData = {};
     }
 
-    if (!marketStore.markets?.length) return;
+    if (!marketStore.markets?.length) {
+      logger.debug('No markets configured, skipping relay data loading');
+      return;
+    }
+
+    logger.debug('Loading relay data for markets', { marketCount: marketStore.markets.length });
 
     for (const market of marketStore.markets) {
+      console.log('[DEBUG] Processing market:', market.opts?.name, 'merchants:', market.opts?.merchants);
+      logger.debug('Loading relay data for market', { 
+        marketName: market.opts?.name, 
+        relayCount: market.relays?.length, 
+        merchantCount: market.opts?.merchants?.length,
+        merchants: market.opts?.merchants
+      });
+      
       for (const relayUrl of market.relays) {
+        console.log('[DEBUG] Loading relay data for:', relayUrl, 'with merchants:', market.opts.merchants);
         await loadRelayData(relayUrl, market.opts.merchants);
       }
     }
@@ -77,6 +92,13 @@ export function useRelay() {
         relayData.connected = true;
         relayData.error = null;
         logger.info(`Connected to relay ${relayData.relayUrl}`);
+        console.log('[DEBUG] Relay connected callback triggered for:', relayData.relayUrl, 'relayKey:', relayKey);
+        logger.debug('Relay connected, starting query', {
+          relayUrl: relayData.relayUrl,
+          merchantCount: relayData.merchants?.length,
+          merchants: relayData.merchants
+        });
+        console.log('[DEBUG] About to call queryRelay with key:', relayKey);
         queryRelay(relayKey);
       });
       relayData.relay.on("error", (error) => {
@@ -109,21 +131,37 @@ export function useRelay() {
   const buildRelayFilters = (relayData, phase = 'all') => {
     const authors = relayData.merchants;
     const filters = [];
+    
+    logger.debug('Building relay filters', {
+      relayUrl: relayData.relayUrl,
+      phase,
+      merchantCount: authors?.length,
+      merchants: authors,
+      lastEventAt: relayData.lastEventAt
+    });
 
     if (phase === 'all' || phase === 'stalls') {
-      filters.push({
+      const filter = {
         kinds: [30017],
         authors,
-        since: relayData.lastEventAt + 1,
-      });
+      };
+      // Only add 'since' if we have a meaningful lastEventAt (> 0)
+      if (relayData.lastEventAt > 0) {
+        filter.since = relayData.lastEventAt + 1;
+      }
+      filters.push(filter);
     }
 
     if (phase === 'all' || phase === 'products') {
-      filters.push({
+      const filter = {
         kinds: [30018],
         authors,
-        since: relayData.lastEventAt + 1,
-      });
+      };
+      // Only add 'since' if we have a meaningful lastEventAt (> 0)
+      if (relayData.lastEventAt > 0) {
+        filter.since = relayData.lastEventAt + 1;
+      }
+      filters.push(filter);
     }
 
     if (marketStore.account?.pubkey) {
@@ -146,18 +184,56 @@ export function useRelay() {
   };
 
   const queryRelay = async (relayKey) => {
+    console.log('[DEBUG] queryRelay called with key:', relayKey);
     const relayData = marketStore.relaysData[relayKey];
+    console.log('[DEBUG] relayData found:', JSON.stringify(relayData, null, 2));
+    
+    logger.debug('Querying relay for merchant data', {
+      relayUrl: relayData.relayUrl,
+      merchants: relayData.merchants,
+      merchantCount: relayData.merchants?.length
+    });
 
     const stallFilters = buildRelayFilters(relayData, 'stalls');
-    const stallEvents = await relayData.relay.list(stallFilters);
-    if (stallEvents?.length) {
-      await eventService.processEvents(stallEvents, relayData);
+    console.log('[DEBUG] Stall filters:', JSON.stringify(stallFilters, null, 2));
+    logger.debug('Fetching stalls from relay', { relayUrl: relayData.relayUrl, filters: stallFilters });
+    
+    try {
+      const stallEvents = await relayData.relay.list(stallFilters);
+      console.log('[DEBUG] Stall events received:', stallEvents?.length || 0, stallEvents);
+      if (stallEvents?.length) {
+        logger.debug('Processing stall events from relay', {
+          relayUrl: relayData.relayUrl,
+          stallCount: stallEvents.length,
+          merchantsWithStalls: [...new Set(stallEvents.map(e => e.pubkey))]
+        });
+        await eventService.processEvents(stallEvents, relayData);
+      } else {
+        console.log('[DEBUG] No stall events found for merchant');
+      }
+    } catch (error) {
+      console.error('[DEBUG] Error fetching stall events:', error);
     }
 
     const productFilters = buildRelayFilters(relayData, 'products');
-    const productEvents = await relayData.relay.list(productFilters);
-    if (productEvents?.length) {
-      await eventService.processEvents(productEvents, relayData);
+    console.log('[DEBUG] Product filters:', JSON.stringify(productFilters, null, 2));
+    logger.debug('Fetching products from relay', { relayUrl: relayData.relayUrl, filters: productFilters });
+    
+    try {
+      const productEvents = await relayData.relay.list(productFilters);
+      console.log('[DEBUG] Product events received:', productEvents?.length || 0, productEvents);
+      if (productEvents?.length) {
+        logger.debug('Processing product events from relay', {
+          relayUrl: relayData.relayUrl,
+          productCount: productEvents.length,
+          merchantsWithProducts: [...new Set(productEvents.map(e => e.pubkey))]
+        });
+        await eventService.processEvents(productEvents, relayData);
+      } else {
+        console.log('[DEBUG] No product events found for merchant');
+      }
+    } catch (error) {
+      console.error('[DEBUG] Error fetching product events:', error);
     }
 
     const allFilters = buildRelayFilters(relayData, 'all');
@@ -165,6 +241,12 @@ export function useRelay() {
     relayData.sub.on(
       "event",
       (event) => {
+        logger.debug('Real-time event received from relay', {
+          relayUrl: relayData.relayUrl,
+          eventKind: event.kind,
+          merchantPubkey: event.pubkey,
+          eventType: event.kind === 30017 ? 'stall' : event.kind === 30018 ? 'product' : 'other'
+        });
         eventService.processEvent(event, relayData);
       },
       { id: "masterSub" }

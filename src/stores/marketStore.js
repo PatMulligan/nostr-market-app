@@ -9,7 +9,7 @@ export const useMarketStore = defineStore("marketStore", {
     defaultBanner: "https://atitlan.io/atitlanio-volight.png",
     defaultLogo: "https://atitlan.io/aio.png",
     defaultMarketNaddr:
-      "naddr1qqjrzerxxu6xxdm994nxyc3s956xzdpc95ukyv3n94nxydrzvgunjcn9x56rwqgkwaehxw309ahx7um5wghxzarfw3kxzm3wd9hsz9nhwden5te0wfjkccte9eshg6t5d3skutnfdupzqz2527ue2pt5ttxukc3juz8m6x6kkha3lymcq5c6ugz7f48grs9pqvzqqqr4gvz5v3j7",
+      "naddr1qqjxgdp4vv6rydej943n2dny956rwwf4943xzwfc95ekyd3evenrsvrrvc6r2qf8waehxw309akxucnfw3ejuct5d96xcctw9e5k7tmwdaehgunjv4kxz7f0v96xjmczyqrfrfkxv3m8t4elpe28x065z30zszaaqa4u0744qcmadsz3y50cjqcyqqq82scmcafla",
     account: null,
     accountDialog: {
       show: false,
